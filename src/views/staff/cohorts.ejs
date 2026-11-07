@@ -1,0 +1,31 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <h1>Cohorts</h1>
+  <p class="muted">Cohort 0: 8–10 founders, mid-2027, mainly Nigerian and West African. Full cohorts: 12–20 resident innovators, 6–12 months, balanced across Make, Grow and Create.</p>
+  <div class="card" style="padding:0">
+    <table class="list">
+      <thead><tr><th>Cohort</th><th>Applications open</th><th>Starts</th><th>Target size</th><th>Applications</th><th>Accepted</th><th>Status</th></tr></thead>
+      <tbody>
+      <% if (!cohorts.length) { %><tr><td colspan="7" class="muted">No cohorts yet.</td></tr><% } %>
+      <% for (const c of cohorts) { %>
+        <tr><td><b><%= c.name %></b></td><td class="small"><%= date(c.opens_on) %> – <%= date(c.closes_on) %></td><td><%= date(c.starts_on) %></td><td><%= c.size_target || '—' %></td><td><%= c.apps %></td><td><%= c.accepted %></td><td><span class="badge"><%= c.status %></span></td></tr>
+      <% } %>
+      </tbody>
+    </table>
+  </div>
+  <% if (staff === 'admin') { %>
+  <form class="card" method="post" action="/staff/cohorts">
+    <h3 style="margin-top:0">New cohort</h3>
+    <div class="grid g3">
+      <div class="field"><label class="lbl">Name</label><input type="text" name="name" placeholder="Cohort 0" required></div>
+      <div class="field"><label class="lbl">Applications open</label><input type="date" name="opens_on"></div>
+      <div class="field"><label class="lbl">Applications close</label><input type="date" name="closes_on"></div>
+      <div class="field"><label class="lbl">Starts</label><input type="date" name="starts_on"></div>
+      <div class="field"><label class="lbl">Target size</label><input type="number" name="size_target" min="1"></div>
+      <div class="field"><label class="lbl">Status</label><select name="status"><option>planned</option><option>open</option><option>closed</option><option>running</option><option>completed</option></select></div>
+    </div>
+    <button class="btn" type="submit">Create</button>
+  </form>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

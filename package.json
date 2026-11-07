@@ -1,0 +1,24 @@
+{
+  "name": "ventureos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VentureOS by ScaleGate Africa: applications from founders for the VentureOS Center residency, equity, debt and grant funding, with review, scoring and the innovator tab",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "migrate": "node src/migrate.js",
+    "demo": "node scripts/demo.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "jsonwebtoken": "9.0.3",
+    "multer": "^2.0.2",
+    "nodemailer": "^6.10.1",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": { "supertest": "^7.1.0" }
+}

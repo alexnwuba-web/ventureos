@@ -1,0 +1,18 @@
+<%- include('../partials/head') %>
+<div class="wrap narrow">
+  <h1>New application</h1>
+  <p class="muted">Choose everything you are asking for. The questions and documents adjust to your choice, and you can change it until you send the application.</p>
+  <% if (error) { %><div class="notice err"><%= error %></div><% } %>
+  <form method="post" action="/my/new" class="card">
+    <div class="field"><label class="lbl" for="vn">Venture or brand name<span class="req">*</span></label>
+      <div class="help">A working name is fine.</div>
+      <input id="vn" type="text" name="venture_name" required maxlength="160"></div>
+    <div class="field kindpick"><label class="lbl" style="border:0;padding:0;background:none;cursor:default">I am applying for<span class="req">*</span></label>
+      <% for (const [k, v] of Object.entries(kinds)) { %>
+        <label><input type="checkbox" name="kinds[]" value="<%= k %>" <%= chosen.includes(k) ? 'checked' : '' %>><b><%= v.label %></b><div class="muted small" style="margin:4px 0 0 24px"><%= v.blurb %></div></label>
+      <% } %>
+    </div>
+    <button class="btn" type="submit">Start</button>
+  </form>
+</div>
+<%- include('../partials/foot') %>

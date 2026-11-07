@@ -1,0 +1,15 @@
+<%- include('../partials/head') %>
+<div class="wrap" style="max-width:480px">
+  <div class="card">
+    <h1>Sign in</h1>
+    <p class="muted">Type your email address. We will send you a six-digit code — there is no password. New to VentureOS? This also creates your account.</p>
+    <% if (error) { %><div class="notice err"><%= error %></div><% } %>
+    <form method="post" action="/signin">
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="field"><label class="lbl" for="email">Email address</label>
+        <input id="email" type="email" name="email" value="<%= email %>" required autocomplete="email" autofocus></div>
+      <button class="btn" type="submit">Send me a code</button>
+    </form>
+  </div>
+</div>
+<%- include('../partials/foot') %>

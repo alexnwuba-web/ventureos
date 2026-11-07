@@ -1,0 +1,52 @@
+<%- include('../partials/head') %>
+<section class="hero">
+  <div class="wrap">
+    <p class="small" style="letter-spacing:.12em;text-transform:uppercase;color:#c8a14a;margin:0 0 10px">VentureOS Center · Lagos</p>
+    <h1>Make. Grow. <em>Create.</em></h1>
+    <p>Africa's real problems and Africa's real culture, built into businesses the world will buy. Apply for a place in the VentureOS Center, or for equity, debt or grant funding through ScaleGate Africa — with a route to Europe through ScaleGate in The Hague.</p>
+    <p style="margin-top:24px"><a class="btn gold" href="<%= person ? '/my/new' : '/signin?next=/my/new' %>">Start an application</a>
+      <% if (!person) { %>&nbsp; <a class="btn ghost" href="/signin">Sign in</a><% } %></p>
+  </div>
+</section>
+<div class="wrap">
+  <div class="grid g3">
+    <div class="card pillar make"><h3>Make</h3><p class="muted">Water, energy, petroleum and petrochemicals, waste-to-value, cooling and the built environment, health diagnostics.</p></div>
+    <div class="card pillar grow"><h3>Grow</h3><p class="muted">Production, processing and storage, natural and organic farming, packaged Nigerian food and packaging for export.</p></div>
+    <div class="card pillar create"><h3>Create</h3><p class="muted">Fashion, music, art, authorship and publishing, theatre, stage and screen production, media, design and tourism.</p></div>
+  </div>
+
+  <h2 id="apply">What you can apply for</h2>
+  <p class="muted">One application can ask for more than one of these — for example a residency and equity together. You can save and come back at any time.</p>
+  <div class="grid g2">
+    <% for (const [k, v] of Object.entries(kinds)) { %>
+      <a class="card kindcard" href="<%= person ? '/my/new?kind=' + k : '/signin?next=' + encodeURIComponent('/my/new?kind=' + k) %>">
+        <h3><%= v.label %></h3><p class="muted" style="margin:0"><%= v.blurb %></p>
+      </a>
+    <% } %>
+  </div>
+
+  <h2>What we will ask for</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Every application</h3>
+      <p class="muted">The venture and its founders, the problem from the user's side, your solution and market (with the numbers), your evidence so far, IP ownership and any legal matters.</p>
+      <h3>Residency</h3>
+      <p class="muted" style="margin-bottom:0">Your challenge track, a 2-minute video, where you would do problem immersion, what will exist at the end, and the facilities you need. Make founders show technical depth, Grow founders real value-chain experience, Create founders a portfolio.</p>
+    </div>
+    <div class="card">
+      <h3>Equity</h3>
+      <p class="muted">The raise and the valuation — and the <b>basis</b> of the valuation: the method, the workings, comparables and your downside case. Your cap table, use of funds, governance and how investors exit.</p>
+      <h3>Debt</h3>
+      <p class="muted" style="margin-bottom:0">Purpose, tenor and repayment; where repayment comes from; three years of results, 12 months of bank statements; existing loans and credit history; security and guarantees.</p>
+    </div>
+  </div>
+
+  <h2>How selection works</h2>
+  <ol class="steps">
+    <li><span class="n">1</span><div><b>Apply online</b><div class="muted small">Answer the questions for what you are asking for and upload your documents.</div></div></li>
+    <li><span class="n">2</span><div><b>Screening and two independent reviews</b><div class="muted small">Reviewers declare any conflict of interest and never score people they know.</div></div></li>
+    <li><span class="n">3</span><div><b>Challenge task or due diligence</b><div class="muted small">A 1–2 week practical challenge for residencies; due diligence for funding.</div></div></li>
+    <li><span class="n">4</span><div><b>Interview and committee</b><div class="muted small">The committee balances pillars and countries and makes the decision.</div></div></li>
+  </ol>
+</div>
+<%- include('../partials/foot') %>

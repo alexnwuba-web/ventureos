@@ -1,0 +1,64 @@
+<%
+  // Renders one question. In: f (field), v (current value), required (bool), hidden (bool), dis (disabled).
+  const name = 'a[' + f.key + ']';
+  const id = 'f_' + f.key;
+  const opts = (f.options || []).map((o) => typeof o === 'string' ? { value: o, label: o } : o);
+%>
+<div class="field" <% if (f.showIf) { %>data-show-key="<%= f.showIf.key %>" data-show-in="<%= f.showIf.in.join('|') %>"<% } %> <%= hidden ? 'hidden' : '' %>>
+  <% if (f.type === 'check') { %>
+    <label class="checkline"><input type="checkbox" name="<%= name %>" <%= v ? 'checked' : '' %> <%= dis %>><span><%= f.label %><% if (required) { %><span class="req">*</span><% } %></span></label>
+  <% } else { %>
+    <label class="lbl" for="<%= id %>"><%= f.label %><% if (required) { %><span class="req" title="Required">*</span><% } %></label>
+    <% if (f.help) { %><div class="help"><%= f.help %></div><% } %>
+    <% if (f.minLength) { %><div class="help">At least <%= f.minLength %> characters.</div><% } %>
+    <% if (f.type === 'textarea') { %>
+      <textarea id="<%= id %>" name="<%= name %>" <%= dis %>><%= v || '' %></textarea>
+    <% } else if (f.type === 'select') { %>
+      <select id="<%= id %>" name="<%= name %>" <%= dis %>>
+        <option value="">Choose…</option>
+        <% for (const o of opts) { %><option value="<%= o.value %>" <%= v === o.value ? 'selected' : '' %>><%= o.label %></option><% } %>
+      </select>
+    <% } else if (f.type === 'yesno') { %>
+      <div class="pills">
+        <label><input type="radio" name="<%= name %>" value="yes" <%= v === 'yes' ? 'checked' : '' %> <%= dis %>><span>Yes</span></label>
+        <label><input type="radio" name="<%= name %>" value="no" <%= v === 'no' ? 'checked' : '' %> <%= dis %>><span>No</span></label>
+      </div>
+    <% } else if (f.type === 'multiselect') { %>
+      <% const list = Array.isArray(v) ? v : []; %>
+      <% for (const o of opts) { %>
+        <label class="choice"><input type="checkbox" name="<%= name %>[]" value="<%= o.value %>" <%= list.includes(o.value) ? 'checked' : '' %> <%= dis %>><span><%= o.label %></span></label>
+      <% } %>
+    <% } else if (f.type === 'table') { %>
+      <% const rows = Array.isArray(v) ? v : []; const n = f.fixedRows ? f.fixedRows.length : Math.max(f.rows || 3, rows.length + 1); const sumCol = (f.columns.find((c) => c.type === 'money' && f.key === 'uof') || {}).key; %>
+      <div class="scrollx">
+      <table class="tablein" <% if (sumCol) { %>data-sum-col="<%= sumCol %>"<% } %>>
+        <thead><tr><% if (f.fixedRows) { %><th></th><% } %><% for (const c of f.columns) { %><th><%= c.label %></th><% } %></tr></thead>
+        <tbody>
+        <% for (let i = 0; i < n; i++) { const row = rows[i] || {}; %>
+          <tr>
+            <% if (f.fixedRows) { %><td class="rowlabel"><%= f.fixedRows[i] %></td><% } %>
+            <% for (const c of f.columns) { const cn = name + '[' + i + '][' + c.key + ']'; const cv = row[c.key] ?? ''; %>
+              <td style="min-width:<%= c.type === 'select' ? 130 : (['money','number','percent'].includes(c.type) ? 95 : 115) %>px">
+                <% if (c.type === 'select') { %>
+                  <select name="<%= cn %>" <%= dis %>><option value=""></option><% for (const o of c.options) { %><option <%= cv === o ? 'selected' : '' %>><%= o %></option><% } %></select>
+                <% } else { %>
+                  <input type="text" name="<%= cn %>" value="<%= cv %>" <%= ['money','number','percent'].includes(c.type) ? 'inputmode=decimal' : '' %> <%= dis %>>
+                <% } %>
+              </td>
+            <% } %>
+          </tr>
+        <% } %>
+        </tbody>
+      </table>
+      </div>
+      <% if (sumCol) { %><div class="help" style="margin-top:6px">Total: <b data-sum-out></b></div><% } %>
+      <% if (!f.fixedRows) { %><div class="help" style="margin-top:6px">Need more rows? Save — an empty row is added each time.</div><% } %>
+    <% } else { %>
+      <% const t = { money: 'text', percent: 'text', number: 'text', date: 'date', url: 'url', email: 'email' }[f.type] || 'text'; %>
+      <div class="row" style="flex-wrap:nowrap">
+        <input id="<%= id %>" type="<%= t %>" name="<%= name %>" value="<%= v ?? '' %>" <%= ['money','percent','number'].includes(f.type) ? 'inputmode=decimal' : '' %> <%= f.max ? 'maxlength=' + f.max : '' %> <%= dis %> style="<%= ['money','percent','number'].includes(f.type) ? 'max-width:260px' : '' %>">
+        <% if (f.type === 'percent') { %><span class="muted">%</span><% } %>
+      </div>
+    <% } %>
+  <% } %>
+</div>

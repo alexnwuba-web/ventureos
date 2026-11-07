@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · VentureOS</title>
+  <meta name="description" content="VentureOS by ScaleGate Africa — Make. Grow. Create. Apply for the VentureOS Center residency, equity, debt or grant funding.">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2314213d'/><rect x='11' y='11' width='10' height='10' fill='%23c8a14a' transform='rotate(45 16 16)'/></svg>">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/"><i></i><b>VentureOS</b><span>ScaleGate Africa</span></a>
+    <nav>
+      <% if (person) { %>
+        <% if (staff) { %>
+          <a href="/staff" class="<%= path.startsWith('/staff/a') || path === '/staff' ? 'on' : '' %>">Applications</a>
+          <% if (staff === 'admin' || staff === 'committee') { %><a href="/staff/cohorts" class="<%= path.startsWith('/staff/cohorts') ? 'on' : '' %>">Cohorts</a><% } %>
+          <% if (staff !== 'reviewer') { %><a href="/staff/tab" class="<%= path.startsWith('/staff/tab') ? 'on' : '' %>">Innovator tab</a><% } %>
+          <% if (staff === 'admin') { %><a href="/staff/people" class="<%= path.startsWith('/staff/people') ? 'on' : '' %>">Staff</a><% } %>
+        <% } %>
+        <a href="/my" class="<%= path.startsWith('/my') ? 'on' : '' %>"><%= staff ? 'My applications' : 'Your applications' %></a>
+        <form method="post" action="/signout" style="display:inline"><button type="submit">Sign out</button></form>
+      <% } else { %>
+        <a href="/#apply">Apply</a>
+        <a href="/signin">Sign in</a>
+      <% } %>
+    </nav>
+  </div>
+</header>
+<main>

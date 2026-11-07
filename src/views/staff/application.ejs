@@ -1,0 +1,269 @@
+<%- include('../partials/head') %>
+<%
+  const st = status(app.status);
+  const m = analysis.metrics;
+  const cur = answers.eq_currency || answers.loan_currency || answers.fin_currency || answers.grant_currency || '';
+  const levelTone = { red: 'red', amber: 'amber', info: 'blue' };
+  const actionLabels = { submitted: 'Sent by founder', resubmitted: 'Sent back by founder', created: 'Started', status: 'Stage changed', 'answers.saved': 'Answers saved',
+    'document.uploaded': 'Document uploaded', 'document.removed': 'Document removed', 'document.opened': 'Document opened', 'document.accepted': 'Document accepted', 'document.rejected': 'Document returned',
+    'reviewer.assigned': 'Reviewer assigned', 'reviewer.removed': 'Reviewer removed', 'conflict.none': 'Reviewer declared no conflict', 'conflict.declared': 'Reviewer declared a conflict',
+    'review.saved': 'Review saved', 'review.sent': 'Review sent', message: 'Message', note: 'Internal note', kinds: 'Request changed', cohort: 'Cohort set' };
+%>
+<div class="wrap">
+  <p class="small"><a href="/staff">← Applications</a></p>
+  <div class="row between">
+    <div>
+      <h1><%= app.venture_name %></h1>
+      <div class="row">
+        <span class="muted"><%= app.ref %></span>
+        <% if (app.pillar) { %><span class="badge <%= app.pillar %>"><%= pillarLabel(app.pillar) %></span><% } %>
+        <% for (const k of app.kinds) { %><span class="badge kind"><%= kindLabel(k) %></span><% } %>
+        <span class="badge <%= st.tone %>"><%= st.label %></span>
+        <% if (app.cohort_name) { %><span class="badge"><%= app.cohort_name %></span><% } %>
+      </div>
+      <p class="small muted" style="margin:6px 0 0"><%= app.applicant_name %> · <a href="mailto:<%= app.applicant_email %>"><%= app.applicant_email %></a><%= app.applicant_phone ? ' · ' + app.applicant_phone : '' %> · sent <%= date(app.submitted_at) %></p>
+    </div>
+    <button class="btn ghost small noprint" onclick="window.print()">Print</button>
+  </div>
+  <% if (notice === 'moved') { %><div class="notice ok" style="margin-top:14px">Stage changed and the founder has been emailed.</div><% } %>
+  <% if (notice === 'review-sent') { %><div class="notice ok" style="margin-top:14px">Your review has been sent.</div><% } %>
+  <% if (notice === 'review-saved') { %><div class="notice ok" style="margin-top:14px">Review saved. Send it when every criterion is scored.</div><% } %>
+
+  <nav class="tabs noprint" style="margin-top:18px">
+    <a href="#summary">Summary</a><a href="#answers">Answers</a><a href="#documents">Documents</a><a href="#reviews">Reviews</a><a href="#messages">Messages</a><% if (history.length) { %><a href="#history">History</a><% } %>
+  </nav>
+
+  <div class="split">
+    <div>
+      <% if (!canSeeAnswers) { %>
+        <div class="notice warn">Declare any conflict of interest (on the right) before you can read this application.</div>
+      <% } else { %>
+      <section id="summary">
+        <div class="card">
+          <h2 style="margin-top:0">First read</h2>
+          <p class="small muted" style="margin-top:-4px">Worked out from the founder's answers. Flags tell you where to ask questions; they are not a decision.</p>
+          <div class="grid g4" style="margin:12px 0">
+            <div class="metric"><span>Complete</span><b><%= ready.percent %>%</b></div>
+            <div class="metric"><span>Red flags</span><b style="color:var(--red)"><%= analysis.counts.red %></b></div>
+            <div class="metric"><span>Amber flags</span><b style="color:var(--amber)"><%= analysis.counts.amber %></b></div>
+            <div class="metric"><span>Revenue last year</span><b><%= money(m.revenue_last) %></b></div>
+          </div>
+          <% if (app.kinds.includes('equity')) { %>
+            <h3>Equity</h3>
+            <table class="kv">
+              <tr><td>Raising</td><td><%= answers.eq_currency || '' %> <%= full(answers.eq_amount) %> · <%= answerText(Q.field('eq_instrument'), answers.eq_instrument) || '—' %></td></tr>
+              <tr><td>Pre-money asked / post-money</td><td><%= money(answers.eq_pre_money) %> / <%= money(m.post_money) %></td></tr>
+              <tr><td>Stake implied / offered</td><td><%= m.implied_stake != null ? m.implied_stake.toFixed(1) + '%' : '—' %> / <%= answers.eq_offered != null && answers.eq_offered !== '' ? answers.eq_offered + '%' : '—' %></td></tr>
+              <tr><td>Pre-money ÷ revenue</td><td><%= m.revenue_multiple != null ? m.revenue_multiple.toFixed(1) + '×' : '—' %><%= m.ebitda_multiple != null ? ' · ÷ EBITDA ' + m.ebitda_multiple.toFixed(1) + '×' : '' %></td></tr>
+              <tr><td>Against last round</td><td><%= m.uplift_on_last_round != null ? m.uplift_on_last_round.toFixed(2) + '× last post-money' : '—' %></td></tr>
+              <tr><td>Valuation methods</td><td><%= answerText(Q.field('val_methods'), answers.val_methods) || '—' %></td></tr>
+              <tr><td>Founders after the round</td><td><%= m.founder_pct_after != null ? m.founder_pct_after.toFixed(1) + '%' : '—' %></td></tr>
+            </table>
+          <% } %>
+          <% if (app.kinds.includes('debt')) { %>
+            <h3>Debt</h3>
+            <table class="kv">
+              <tr><td>Loan</td><td><%= answers.loan_currency || '' %> <%= full(answers.loan_amount) %> · <%= answers.tenor_months || '—' %> months · <%= answerText(Q.field('loan_purpose'), answers.loan_purpose) || '—' %></td></tr>
+              <tr><td>Rate used</td><td><%= m.rate_used != null ? m.rate_used.toFixed(1) + '%' : '—' %><%= m.rate_assumed ? ' (assumed — founder gave none)' : '' %></td></tr>
+              <tr><td>New debt service a year</td><td><%= money(m.new_annual_service) %> (<%= money(m.new_monthly_service) %> a month)</td></tr>
+              <tr><td>Existing debt service a year</td><td><%= money(m.existing_annual_service) %> · outstanding <%= money(m.existing_outstanding) %></td></tr>
+              <tr><td>Debt service cover (EBITDA ÷ all debt service)</td><td><b><%= m.dscr != null ? m.dscr.toFixed(2) + '×' : '—' %></b></td></tr>
+              <tr><td>Total debt ÷ EBITDA</td><td><%= m.leverage != null ? m.leverage.toFixed(1) + '×' : '—' %></td></tr>
+              <tr><td>Net monthly cash</td><td><%= money(m.monthly_net_cash) %></td></tr>
+              <tr><td>Security at forced-sale value</td><td><%= money(m.collateral_value) %><%= m.collateral_cover != null ? ' · covers ' + (m.collateral_cover * 100).toFixed(0) + '% of the loan' : '' %></td></tr>
+            </table>
+          <% } %>
+          <% if (m.use_of_funds_total != null) { %><p class="small">Use of funds adds up to <b><%= full(m.use_of_funds_total) %></b>.</p><% } %>
+          <% if (m.cagr_3y != null) { %><p class="small">Projected revenue growth: <b><%= m.cagr_3y.toFixed(0) %>% a year</b> for three years.</p><% } %>
+
+          <h3>Flags</h3>
+          <% if (!analysis.flags.length) { %><p class="muted">None.</p><% } %>
+          <ul class="flags">
+            <% for (const f of analysis.flags) { %>
+              <li><span class="badge <%= levelTone[f.level] %>"><%= f.level === 'info' ? 'note' : f.level %></span><span class="area small muted"><%= f.area %></span><span><%= f.text %></span></li>
+            <% } %>
+          </ul>
+          <% if (ready.missing.length || ready.docsMissing.length) { %>
+            <h3>Still missing</h3>
+            <ul class="small">
+              <% for (const s of ready.missing) for (const f of s.missing) { %><li><%= s.title %>: <%= f.label %></li><% } %>
+              <% for (const d of ready.docsMissing) { %><li>Document: <%= d.label %></li><% } %>
+            </ul>
+          <% } %>
+        </div>
+      </section>
+
+      <section id="answers">
+        <h2>Answers</h2>
+        <% for (const s of sections) { %>
+          <div class="card"><h3 style="margin:0"><%= s.title %></h3><%- include('../partials/answers', { s, answers, Q }) %></div>
+        <% } %>
+      </section>
+
+      <section id="documents">
+        <h2>Documents</h2>
+        <div class="card" style="padding:0">
+          <table class="list">
+            <thead><tr><th>Document</th><th>Files</th></tr></thead>
+            <tbody>
+            <% for (const d of docList) { const files = docs.filter((x) => x.doc_type === d.key); if (!files.length && !d.isRequired) continue; %>
+              <tr><td><b><%= d.label %></b><%= d.isRequired ? ' *' : '' %></td><td>
+                <% if (!files.length) { %><span class="badge red">Missing</span><% } %>
+                <% for (const x of files) { %>
+                  <div class="row small" style="margin-bottom:6px">
+                    <a href="/files/<%= x.id %>" target="_blank"><%= x.filename %></a> <span class="muted"><%= Math.round((x.size || 0) / 1024) %> KB · <%= date(x.created_at) %></span>
+                    <span class="badge <%= x.status === 'accepted' ? 'green' : x.status === 'rejected' ? 'red' : 'muted' %>"><%= x.status %></span>
+                    <% if (isAdmin) { %>
+                      <form method="post" action="/staff/a/<%= app.ref %>/documents/<%= x.id %>" class="row">
+                        <select name="status" style="width:auto;padding:4px 6px"><option value="received">Received</option><option value="accepted">Accept</option><option value="rejected">Ask to replace</option></select>
+                        <input type="text" name="note" placeholder="Note to founder" style="width:170px;padding:4px 6px" value="<%= x.note || '' %>">
+                        <button class="btn small ghost" type="submit">Set</button>
+                      </form>
+                    <% } %>
+                  </div>
+                <% } %>
+              </td></tr>
+            <% } %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <% } %>
+
+      <section id="reviews">
+        <h2>Reviews</h2>
+        <% for (const k of rubrics) { const sm = summaries[k]; const R = RUBRICS[k]; %>
+          <div class="card">
+            <div class="row between"><h3 style="margin:0"><%= R.label %></h3>
+              <% if (sm) { %><span>Average <b><%= sm.average %></b> / 100 from <%= sm.count %> review<%= sm.count > 1 ? 's' : '' %><% if (sm.wide) { %> <span class="badge amber">Reviewers differ by <%= sm.spread %></span><% } %></span><% } %></div>
+            <% if (othersHidden) { %><p class="small muted">Other reviewers' scores appear once you have sent yours.</p><% } %>
+            <% const sent = reviews.filter((rv) => rv.rubric === k && rv.submitted_at); %>
+            <% if (sent.length) { %>
+              <div class="scrollx"><table class="list small" style="margin-top:10px">
+                <thead><tr><th>Reviewer</th><% for (const c of R.criteria) { %><th title="<%= c.guide %>"><%= c.label %> (<%= c.weight %>)</th><% } %><th>Total</th><th>Recommends</th></tr></thead>
+                <tbody><% for (const rv of sent) { %><tr><td><%= rv.reviewer_name %></td><% for (const c of R.criteria) { %><td><%= rv.scores[c.key] ?? '—' %></td><% } %><td><b><%= rv.total %></b></td><td><%= rv.recommendation %></td></tr>
+                  <% if (rv.comments) { %><tr><td colspan="<%= R.criteria.length + 3 %>" class="answer muted"><%= rv.comments %></td></tr><% } %><% } %></tbody>
+              </table></div>
+            <% } %>
+
+            <% if (app.assignment && app.assignment.conflict === 'none') { const my = mine.find((rv) => rv.rubric === k); %>
+              <% if (my && my.submitted_at) { %>
+                <p class="small muted">You sent your review on <%= when(my.submitted_at) %>.</p>
+              <% } else { %>
+                <form method="post" action="/staff/a/<%= app.ref %>/review" class="noprint" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+                  <input type="hidden" name="rubric" value="<%= k %>">
+                  <p class="small"><b>Your scores</b> — 0 (none) to 5 (excellent) for each criterion.</p>
+                  <% for (const c of R.criteria) { const cv = my && my.scores ? my.scores[c.key] : undefined; %>
+                    <div class="field" style="margin-bottom:12px">
+                      <label class="lbl"><%= c.label %> <span class="muted small">· weight <%= c.weight %></span></label>
+                      <div class="help"><%= c.guide %></div>
+                      <div class="pills"><% for (let s = 0; s <= 5; s++) { %><label><input type="radio" name="scores[<%= c.key %>]" value="<%= s %>" <%= cv === s ? 'checked' : '' %>><span><%= s %></span></label><% } %></div>
+                    </div>
+                  <% } %>
+                  <div class="field"><label class="lbl">Recommendation</label>
+                    <div class="pills"><% for (const [rv, rl] of [['advance','Advance'],['hold','Hold'],['decline','Decline']]) { %><label><input type="radio" name="recommendation" value="<%= rv %>" <%= my && my.recommendation === rv ? 'checked' : '' %>><span><%= rl %></span></label><% } %></div></div>
+                  <div class="field"><label class="lbl">Comments for the committee</label><textarea name="comments"><%= my ? my.comments || '' : '' %></textarea></div>
+                  <div class="row"><button class="btn ghost" type="submit" name="send" value="no">Save</button><button class="btn" type="submit" name="send" value="yes" data-confirm="Send this review? You cannot change it afterwards.">Send review</button></div>
+                </form>
+              <% } %>
+            <% } %>
+          </div>
+        <% } %>
+      </section>
+
+      <section id="messages">
+        <h2>Messages and notes</h2>
+        <div class="card">
+          <% if (!messages.length) { %><p class="muted">None yet.</p><% } %>
+          <% for (const msg of messages) { %>
+            <div class="msg <%= msg.internal ? 'internal' : (msg.staff_role ? 'staff' : '') %>"><div class="who"><%= msg.author_name || '—' %><%= msg.staff_role ? '' : ' (founder)' %> · <%= when(msg.created_at) %><%= msg.internal ? ' · internal note' : '' %></div><div class="answer"><%= msg.body %></div></div>
+          <% } %>
+          <form method="post" action="/staff/a/<%= app.ref %>/message" class="noprint">
+            <textarea name="body" required placeholder="<%= staff === 'reviewer' ? 'Internal note for the team…' : 'Message to the founder, or an internal note…' %>"></textarea>
+            <div class="row" style="margin-top:8px">
+              <% if (staff !== 'reviewer') { %><label class="choice"><input type="checkbox" name="internal" value="yes" checked> Internal note (the founder does not see it)</label><% } %>
+              <button class="btn small" type="submit">Add</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <% if (history.length) { %>
+      <section id="history">
+        <h2>History</h2>
+        <div class="card small" style="padding:0">
+          <table class="list">
+            <% for (const h of history) { %>
+              <tr><td class="nowrap muted"><%= when(h.at) %></td><td><%= h.actor_name || '—' %></td><td><%= actionLabels[h.action] || h.action %>
+                <% if (h.action === 'status' && h.detail) { %>: <%= status(h.detail.from).label %> → <b><%= status(h.detail.to).label %></b><% } %>
+                <% if (h.detail && h.detail.section) { %> (<%= h.detail.section %>)<% } %>
+                <% if (h.detail && h.detail.name) { %> — <%= h.detail.name %><% } %>
+                <% if (h.detail && h.detail.reviewer) { %> — <%= h.detail.reviewer %><% } %></td></tr>
+            <% } %>
+          </table>
+        </div>
+      </section>
+      <% } %>
+    </div>
+
+    <aside class="noprint">
+      <% if (app.assignment && !app.assignment.conflict) { %>
+        <div class="card" style="border-color:var(--gold)">
+          <h3>Conflict of interest</h3>
+          <p class="small">Do you know any founder, or have any interest in this venture or a competitor?</p>
+          <form method="post" action="/staff/a/<%= app.ref %>/conflict"><input type="hidden" name="none" value="yes"><button class="btn small" type="submit">I have no conflict</button></form>
+          <form method="post" action="/staff/a/<%= app.ref %>/conflict" style="margin-top:10px"><textarea name="reason" placeholder="Describe the conflict" required></textarea><button class="btn small ghost" type="submit">Declare a conflict</button></form>
+        </div>
+      <% } else if (app.assignment && app.assignment.conflict !== 'none') { %>
+        <div class="notice warn">You declared a conflict: <%= app.assignment.conflict %>. You will not score this application.</div>
+      <% } %>
+
+      <% if (NEXT.length && staff !== 'reviewer' && staff !== 'finance') { %>
+        <div class="card">
+          <h3>Move to</h3>
+          <form method="post" action="/staff/a/<%= app.ref %>/status">
+            <div class="field"><select name="to" required>
+              <% for (const t of NEXT) { const dec = ['accepted','offer','waitlisted','declined'].includes(t); if (staff === 'committee' && !dec) continue; if (staff !== 'admin' && staff !== 'committee') continue; %>
+                <option value="<%= t %>"><%= status(t).label %></option><% } %>
+            </select></div>
+            <div class="field"><textarea name="note" placeholder="Note — sent to the founder when asking for information or recording a decision"></textarea></div>
+            <button class="btn small" type="submit" data-confirm="Change the stage? The founder will be emailed.">Change stage</button>
+          </form>
+        </div>
+      <% } %>
+
+      <div class="card">
+        <h3>Reviewers</h3>
+        <% if (!assignments.length) { %><p class="small muted">None assigned. Two independent reviewers per application.</p><% } %>
+        <% for (const x of assignments) { %>
+          <div class="row between small" style="padding:4px 0"><span><%= x.name || x.email %> <% if (x.conflict === 'none') { %><span class="badge green">no conflict</span><% } else if (x.conflict) { %><span class="badge red">conflict</span><% } else { %><span class="badge muted">to declare</span><% } %></span>
+            <% if (isAdmin) { %><form method="post" action="/staff/a/<%= app.ref %>/unassign"><input type="hidden" name="reviewer" value="<%= x.reviewer_id %>"><button class="linkbtn muted" type="submit">remove</button></form><% } %></div>
+        <% } %>
+        <% if (isAdmin) { const free = reviewersAvailable.filter((p) => !assignments.some((x) => x.reviewer_id === p.id)); %>
+          <% if (free.length) { %>
+            <form method="post" action="/staff/a/<%= app.ref %>/assign" class="row" style="margin-top:10px">
+              <select name="reviewer" style="flex:1"><% for (const p of free) { %><option value="<%= p.id %>"><%= p.name || p.email %> (<%= p.staff_role %>)</option><% } %></select>
+              <button class="btn small" type="submit">Assign</button>
+            </form>
+          <% } else { %><p class="small muted">Add reviewers under <a href="/staff/people">Staff</a>.</p><% } %>
+        <% } %>
+      </div>
+
+      <% if (isAdmin && app.kinds.includes('residency')) { %>
+        <div class="card">
+          <h3>Cohort</h3>
+          <form method="post" action="/staff/a/<%= app.ref %>/cohort" class="row">
+            <select name="cohort" style="flex:1"><option value="">None</option><% for (const c of cohorts) { %><option value="<%= c.id %>" <%= app.cohort_id === c.id ? 'selected' : '' %>><%= c.name %></option><% } %></select>
+            <button class="btn small ghost" type="submit">Set</button>
+          </form>
+          <% if (!cohorts.length) { %><p class="small muted">Create cohorts under <a href="/staff/cohorts">Cohorts</a>.</p><% } %>
+        </div>
+      <% } %>
+
+      <% if (staff !== 'reviewer' && (app.status === 'accepted' || app.kinds.includes('residency'))) { %>
+        <div class="card small"><h3>Innovator tab</h3><a href="/staff/tab/<%= app.venture_id %>">Open the tab for this venture</a></div>
+      <% } %>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/foot') %>

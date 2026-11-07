@@ -1,0 +1,79 @@
+<%- include('../partials/head') %>
+<% const st = status(app.status); %>
+<div class="wrap">
+  <p class="small"><a href="/my">← Your applications</a></p>
+  <div class="row between">
+    <div>
+      <h1><%= app.venture_name %></h1>
+      <div class="row"><span class="muted"><%= app.ref %></span><% for (const k of app.kinds) { %><span class="badge kind"><%= kindLabel(k) %></span><% } %><span class="badge <%= st.tone %>"><%= st.founder %></span></div>
+    </div>
+  </div>
+  <% if (notice === 'saved') { %><div class="notice ok" style="margin-top:16px">Saved.</div><% } %>
+  <% if (notice === 'sent') { %><div class="notice ok" style="margin-top:16px">Sent. We have emailed you a confirmation and will write to you at each stage.</div><% } %>
+  <% if (app.status === 'info_requested') { %><div class="notice warn" style="margin-top:16px">We need more information — see the message below. Update your answers or documents, then send the application back.</div><% } %>
+
+  <div class="split" style="margin-top:20px">
+    <div>
+      <div class="card">
+        <div class="row between"><h2 style="margin:0">Your application</h2><span class="small muted"><%= ready.percent %>% complete</span></div>
+        <div class="bar" style="margin:12px 0 6px"><span style="width:<%= ready.percent %>%"></span></div>
+        <ol class="steps">
+          <% sections.forEach((s, i) => { const cls = s.required && s.done === s.required ? 'done' : (s.started ? 'part' : ''); %>
+            <li class="<%= cls %>"><span class="n"><%= cls === 'done' ? '✓' : i + 1 %></span>
+              <a href="/my/a/<%= app.ref %>/s/<%= s.key %>"><%= s.title %></a>
+              <span class="meta"><%= s.required ? `${s.done} of ${s.required} required` : 'Optional' %></span></li>
+          <% }) %>
+          <li class="<%= !ready.docsMissing.length ? 'done' : (docs.length ? 'part' : '') %>"><span class="n"><%= !ready.docsMissing.length ? '✓' : sections.length + 1 %></span>
+            <a href="/my/a/<%= app.ref %>/documents">Documents</a><span class="meta"><%= docs.length %> uploaded<%= ready.docsMissing.length ? ` · ${ready.docsMissing.length} required still missing` : '' %></span></li>
+        </ol>
+        <% if (editable) { %>
+          <p style="margin:18px 0 0"><a class="btn <%= ready.ready ? 'gold' : '' %>" href="/my/a/<%= app.ref %>/review">Check and send</a></p>
+        <% } %>
+      </div>
+
+      <div class="card" id="messages">
+        <h2 style="margin-top:0">Messages</h2>
+        <% if (!messages.length) { %><p class="muted">No messages yet. If you have a question about your application, write to us here.</p><% } %>
+        <% for (const m of messages) { %>
+          <div class="msg <%= m.staff_role ? 'staff' : '' %>"><div class="who"><%= m.staff_role ? 'ScaleGate Africa' : (m.author_name || 'You') %> · <%= when(m.created_at) %></div><div class="answer"><%= m.body %></div></div>
+        <% } %>
+        <% if (!['withdrawn'].includes(app.status)) { %>
+        <form method="post" action="/my/a/<%= app.ref %>/message">
+          <textarea name="body" placeholder="Write a message…" required maxlength="4000"></textarea>
+          <p style="margin:8px 0 0"><button class="btn small" type="submit">Send message</button></p>
+        </form>
+        <% } %>
+      </div>
+    </div>
+
+    <aside>
+      <div class="card">
+        <h3>Applying for</h3>
+        <% if (app.status === 'draft') { %>
+          <form method="post" action="/my/a/<%= app.ref %>/kinds">
+            <% for (const [k, v] of Object.entries(kinds)) { %>
+              <label class="choice"><input type="checkbox" name="kinds[]" value="<%= k %>" <%= app.kinds.includes(k) ? 'checked' : '' %>><span><%= v.label %></span></label>
+            <% } %>
+            <button class="btn small ghost" type="submit">Update</button>
+          </form>
+        <% } else { %>
+          <% for (const k of app.kinds) { %><div><%= kinds[k].label %></div><% } %>
+        <% } %>
+      </div>
+      <div class="card small">
+        <h3>Where it stands</h3>
+        <table class="kv">
+          <tr><td>Status</td><td><%= st.founder %></td></tr>
+          <tr><td>Started</td><td><%= date(app.created_at) %></td></tr>
+          <tr><td>Sent</td><td><%= date(app.submitted_at) %></td></tr>
+          <% if (app.cohort_name) { %><tr><td>Cohort</td><td><%= app.cohort_name %></td></tr><% } %>
+        </table>
+        <% if (!status(app.status).final) { %>
+          <form method="post" action="/my/a/<%= app.ref %>/withdraw" data-confirm="Withdraw this application? You cannot undo this." style="margin-top:12px">
+            <button class="linkbtn small muted" type="submit">Withdraw application</button></form>
+        <% } %>
+      </div>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/foot') %>

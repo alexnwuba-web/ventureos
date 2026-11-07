@@ -1,0 +1,43 @@
+<%- include('../partials/head') %>
+<div class="wrap narrow">
+  <p class="small"><a href="/my/a/<%= app.ref %>">← <%= app.venture_name %></a></p>
+  <h1>Documents</h1>
+  <p class="muted">PDF, Word, Excel, PowerPoint, images or zip files, up to 20 MB each. You can upload several files for the same item.</p>
+  <% if (error) { %><div class="notice err"><%= error %></div><% } %>
+  <div class="card">
+    <table class="list">
+      <thead><tr><th>Document</th><th>Uploaded</th></tr></thead>
+      <tbody>
+      <% for (const d of list) { const mine = docs.filter((x) => x.doc_type === d.key); %>
+        <tr>
+          <td><b><%= d.label %></b><% if (d.isRequired) { %><span class="req">*</span><% } %><% if (d.help) { %><div class="muted small"><%= d.help %></div><% } %></td>
+          <td>
+            <% if (!mine.length) { %><span class="muted small"><%= d.isRequired ? 'Required — not uploaded yet' : 'Optional' %></span><% } %>
+            <% for (const x of mine) { %>
+              <div class="row small" style="margin-bottom:4px">
+                <a href="/files/<%= x.id %>" target="_blank"><%= x.filename %></a>
+                <% if (x.status === 'accepted') { %><span class="badge green">Accepted</span><% } else if (x.status === 'rejected') { %><span class="badge red">Please replace</span><% } %>
+                <% if (x.note) { %><span class="muted"><%= x.note %></span><% } %>
+                <% if (editable) { %><form method="post" action="/my/a/<%= app.ref %>/documents/<%= x.id %>/remove" data-confirm="Remove this file?"><button class="linkbtn muted" type="submit">remove</button></form><% } %>
+              </div>
+            <% } %>
+          </td>
+        </tr>
+      <% } %>
+      </tbody>
+    </table>
+  </div>
+  <% if (editable) { %>
+    <form class="card" method="post" action="/my/a/<%= app.ref %>/documents" enctype="multipart/form-data">
+      <h3>Upload a file</h3>
+      <div class="grid g2">
+        <div class="field"><label class="lbl" for="dt">What is it?</label>
+          <select id="dt" name="doc_type" required><% for (const d of list) { %><option value="<%= d.key %>"><%= d.label %><%= d.isRequired ? ' *' : '' %></option><% } %></select></div>
+        <div class="field"><label class="lbl" for="file">File</label><input id="file" type="file" name="file" required></div>
+      </div>
+      <button class="btn" type="submit">Upload</button>
+    </form>
+  <% } %>
+  <p><a class="btn ghost" href="/my/a/<%= app.ref %>">Back to the application</a> <% if (editable) { %><a class="btn" href="/my/a/<%= app.ref %>/review">Check and send →</a><% } %></p>
+</div>
+<%- include('../partials/foot') %>

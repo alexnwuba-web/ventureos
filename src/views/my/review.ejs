@@ -1,0 +1,39 @@
+<%- include('../partials/head') %>
+<div class="wrap narrow">
+  <p class="small"><a href="/my/a/<%= app.ref %>">← <%= app.venture_name %></a></p>
+  <h1>Check and send</h1>
+  <% if (!editable) { %>
+    <div class="notice">This application has been sent.</div>
+  <% } else if (ready.ready) { %>
+    <div class="notice ok">Everything required is in. Read it through, then send it. You will not be able to change it after sending unless we ask you for more information.</div>
+    <form method="post" action="/my/a/<%= app.ref %>/submit" data-confirm="Send this application to ScaleGate Africa now?" class="card row between">
+      <span>Ready to send <b><%= app.ref %></b>.</span><button class="btn gold" type="submit">Send application</button>
+    </form>
+  <% } else { %>
+    <div class="notice warn">Some required items are still missing. Complete them, then come back here to send.</div>
+    <div class="card">
+      <% for (const m of ready.missing) { %>
+        <h3><a href="/my/a/<%= app.ref %>/s/<%= m.section %>"><%= m.title %></a></h3>
+        <ul class="small"><% for (const f of m.missing) { %><li><%= f.label %></li><% } %></ul>
+      <% } %>
+      <% if (ready.docsMissing.length) { %>
+        <h3><a href="/my/a/<%= app.ref %>/documents">Documents</a></h3>
+        <ul class="small"><% for (const d of ready.docsMissing) { %><li><%= d.label %></li><% } %></ul>
+      <% } %>
+    </div>
+  <% } %>
+
+  <h2>Your answers</h2>
+  <% for (const s of sections) { %>
+    <div class="card">
+      <div class="row between"><h3 style="margin:0"><%= s.title %></h3><% if (editable) { %><a class="small" href="/my/a/<%= app.ref %>/s/<%= s.key %>">Edit</a><% } %></div>
+      <%- include('../partials/answers', { s, answers, Q }) %>
+    </div>
+  <% } %>
+  <div class="card">
+    <h3 style="margin-top:0">Documents</h3>
+    <% if (!docs.length) { %><p class="muted">None uploaded.</p><% } %>
+    <ul class="small"><% for (const d of docs) { %><li><a href="/files/<%= d.id %>" target="_blank"><%= d.filename %></a></li><% } %></ul>
+  </div>
+</div>
+<%- include('../partials/foot') %>

@@ -1,0 +1,21 @@
+<%- include('../partials/head') %>
+<div class="wrap" style="max-width:480px">
+  <div class="card">
+    <h1>Check your email</h1>
+    <p class="muted">We sent a six-digit code to <b><%= email %></b>. It works for 10 minutes. If it has not arrived, look in your spam folder.</p>
+    <% if (error) { %><div class="notice err"><%= error %></div><% } %>
+    <form method="post" action="/signin/code">
+      <input type="hidden" name="email" value="<%= email %>">
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="field"><label class="lbl" for="code">Code</label>
+        <input id="code" class="code-input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" required autofocus></div>
+      <button class="btn" type="submit">Sign in</button>
+    </form>
+    <hr>
+    <form method="post" action="/signin" class="small">
+      <input type="hidden" name="email" value="<%= email %>"><input type="hidden" name="next" value="<%= next %>">
+      Didn't get it? <button class="linkbtn" type="submit">Send a new code</button> · <a href="/signin">Use a different email</a>
+    </form>
+  </div>
+</div>
+<%- include('../partials/foot') %>

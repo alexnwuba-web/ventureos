@@ -1,0 +1,9 @@
+<%- include('../partials/head') %>
+<div class="wrap" style="max-width:600px">
+  <div class="card">
+    <h1><%= title %></h1>
+    <p><%= message %></p>
+    <% if (typeof back !== 'undefined' && back) { %><p><a class="btn ghost" href="<%= back %>">Go back</a></p><% } %>
+  </div>
+</div>
+<%- include('../partials/foot') %>
