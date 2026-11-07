@@ -25,7 +25,7 @@
       </a>
       <% } %>
       <div class="vos-layer keep vos-torn vos-sheet vos-grain is-floating sheet" style="left:max(24px, calc(50% - 556px));top:96px;width:560px;--z:40;--rot:-1.5;--d:3;--dy:-8">
-        <p class="vos-eyebrow" style="margin:0 0 12px">ScaleGate Africa · Lagos · The Hague</p>
+        <p class="vos-eyebrow" style="margin:0 0 12px"><a href="<%= config.scalegate.africa.url %>" target="_blank" rel="noopener" style="color:inherit">ScaleGate Africa</a> · Lagos · <a href="<%= config.scalegate.europe.url %>" target="_blank" rel="noopener" style="color:inherit">The Hague</a></p>
         <h1>The way into <em>ScaleGate</em></h1>
         <p class="sub">Africa's real problems and Africa's real culture, built into businesses the world will buy. One application for ScaleGate's programmes in Africa and Europe, the VentureOS Center residency, and investment.</p>
         <div class="acts">
@@ -91,6 +91,28 @@
       <a class="btn ghost" href="/partner">Partner with us <span class="arr">→</span></a>
     </div>
     <p class="small muted" style="margin-top:14px">Applying does not create a service agreement or guarantee acceptance; work starts only once scope and terms are agreed in writing. ScaleGate is not a visa or immigration agency, and does not guarantee positive RVO advice or an IND residence permit. VentureOS is operated by ScaleGate Africa, part of ScaleGate.</p>
+  </div>
+</section>
+
+<section class="section night" id="meet-scalegate">
+  <div class="wrap">
+    <p class="eyebrow vos-reveal" style="color:#d6ad55">Who is behind VentureOS</p>
+    <h2 class="vos-reveal" style="color:var(--on-night)">Meet <em style="color:#d6ad55">ScaleGate</em></h2>
+    <p class="lead vos-reveal" style="color:#d6cbbb">ScaleGate helps companies grow across borders — from Africa into Europe, and from Europe into Africa. VentureOS is how founders apply; ScaleGate's own sites tell you everything else about the team, the programmes and the work.</p>
+    <div class="sgcards">
+      <a class="sgcard vos-reveal" href="<%= config.scalegate.africa.url %>" target="_blank" rel="noopener">
+        <span class="k">In Africa · Lagos hub</span>
+        <h3>ScaleGate Africa</h3>
+        <p>For founders, companies and partners in Africa — and for European companies entering African markets.</p>
+        <span class="go"><%= config.scalegate.africa.host %> <span class="arr">↗</span></span>
+      </a>
+      <a class="sgcard is-eu vos-reveal" href="<%= config.scalegate.europe.url %>" target="_blank" rel="noopener">
+        <span class="k">In Europe · The Hague</span>
+        <h3>ScaleGate</h3>
+        <p>For European visitors, investors and partners — and for African companies building in the Netherlands and across Europe.</p>
+        <span class="go"><%= config.scalegate.europe.host %> <span class="arr">↗</span></span>
+      </a>
+    </div>
   </div>
 </section>
 

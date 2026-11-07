@@ -19,7 +19,7 @@ const future = (days, hh = '10:00') => { const d = new Date(Date.now() + days * 
 test('front page shows the programme, cohorts, campus and projects that interest us', async () => {
   const r = await request(app).get('/').expect(200);
   assert.match(r.text, /About <em>VentureOS<\/em>/);
-  assert.match(r.text, /OxiAi/); assert.match(r.text, /OxiAcademy/); assert.match(r.text, /people decide/);
+  assert.match(r.text, /OxiAi/); assert.match(r.text, /OxiAcademy/); assert.match(r.text, /people decide/); assert.match(r.text, /https:\/\/scalegate\.africa/); assert.match(r.text, /https:\/\/scalegate\.org/);
   assert.match(r.text, /Cohort 0/);
   assert.match(r.text, /VentureOS Center/);
   assert.match(r.text, /Projects that interest us/);

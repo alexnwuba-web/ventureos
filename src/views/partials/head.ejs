@@ -15,9 +15,19 @@
   <script src="/static/js/brand.js" defer></script>
 </head>
 <body>
+<% const sgA = config.scalegate.africa, sgE = config.scalegate.europe; %>
+<div class="sgbar">
+  <div class="wrap">
+    <span class="sgbar__lead">VentureOS is the front door of <b>ScaleGate</b></span>
+    <span class="sgbar__links">
+      <a href="<%= sgA.url %>" target="_blank" rel="noopener"><span class="sgbar__k">In Africa</span> <%= sgA.host %> <span aria-hidden="true">↗</span></a>
+      <a href="<%= sgE.url %>" target="_blank" rel="noopener"><span class="sgbar__k">In Europe</span> <%= sgE.host %> <span aria-hidden="true">↗</span></a>
+    </span>
+  </div>
+</div>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="/" aria-label="VentureOS home"><img class="mark" src="/static/img/ventureos-mark-ink.svg" alt=""><b>Venture<i>OS</i></b><span>by ScaleGate Africa</span></a>
+    <div class="brand"><a class="brand__home" href="/" aria-label="VentureOS home"><img class="mark" src="/static/img/ventureos-mark-ink.svg" alt=""><b>Venture<i>OS</i></b></a><a class="brand__by" href="<%= sgA.url %>" target="_blank" rel="noopener">by ScaleGate Africa</a></div>
     <nav>
       <% if (person) { %>
         <% if (staff) { %>

@@ -14,12 +14,15 @@
       <div><h4>Work with us</h4><ul>
         <li><a href="/partner">Partner with us</a></li><li><a href="/#projects">Projects that interest us</a></li>
         <li><a href="mailto:<%= config.org.email %>"><%= config.org.email %></a></li></ul></div>
+      <div><h4>ScaleGate</h4><ul>
+        <li><a href="<%= config.scalegate.africa.url %>" target="_blank" rel="noopener">ScaleGate Africa</a> <span style="color:#a69b8d">— <%= config.scalegate.africa.host %>, Lagos</span></li>
+        <li><a href="<%= config.scalegate.europe.url %>" target="_blank" rel="noopener">ScaleGate</a> <span style="color:#a69b8d">— <%= config.scalegate.europe.host %>, The Hague</span></li></ul></div>
       <div><h4>With our partners</h4><ul>
         <li><% if (eco.oxiai.url) { %><a href="<%= eco.oxiai.url %>" rel="noopener" target="_blank">OxiAi</a><% } else { %>OxiAi<% } %> <span style="color:#a69b8d">— agents that assist our team</span></li>
         <li><% if (eco.oxiacademy.url) { %><a href="<%= eco.oxiacademy.url %>" rel="noopener" target="_blank">OxiAcademy</a><% } else { %>OxiAcademy<% } %> <span style="color:#a69b8d">— learning for founders</span></li></ul></div>
     </div>
     <div class="threads" data-threads="44" aria-hidden="true"></div>
-    <div class="fine"><span>VentureOS · <%= config.org.name %>, part of ScaleGate · <%= config.org.address %></span><span>Lagos · The Hague</span></div>
+    <div class="fine"><span>VentureOS by <a href="<%= config.scalegate.africa.url %>" target="_blank" rel="noopener">ScaleGate Africa</a>, part of <a href="<%= config.scalegate.europe.url %>" target="_blank" rel="noopener">ScaleGate</a> · <%= config.org.address %></span><span>Lagos · The Hague</span></div>
   </div>
 </footer>
 <script src="/static/js/app.js" defer></script>
