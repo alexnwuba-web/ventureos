@@ -13,7 +13,7 @@ module.exports = {
   databaseUrl: env.VENTUREOS_DATABASE_URL || env.DATABASE_URL || 'postgres://postgres:pg@localhost:5432/ventureos',
   databaseSsl: env.VENTUREOS_DATABASE_SSL === 'require',
   poolMax: Number(env.VENTUREOS_POOL_MAX || 5),
-  baseUrl: (env.VENTUREOS_BASE_URL || 'http://localhost:4300').replace(/\/$/, ''),
+  baseUrl: (env.VENTUREOS_BASE_URL || (prod ? 'https://ventureos.africa' : 'http://localhost:4300')).replace(/\/$/, ''),
   sessionSecret: env.VENTUREOS_SESSION_SECRET || (prod ? null : 'dev-ventureos-session'),
   // Emails that are always administrators (the first staff). Others are made staff from Staff → People.
   admins: (env.VENTUREOS_ADMINS || 'alex@scalegate.org,alexnwuba@gmail.com').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),

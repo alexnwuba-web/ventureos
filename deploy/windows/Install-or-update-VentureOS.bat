@@ -17,7 +17,7 @@ if not exist "%ROOT%\package.json" (
   exit /b 1
 )
 set "DOMAIN="
-set /p DOMAIN=" Web address for VentureOS (e.g. ventureos.scalegate.org) - press Enter to keep the current one: "
+set /p DOMAIN=" Web address - press Enter for ventureos.africa (or to keep the current one): "
 set "LOG=%~dp0ventureos-log.txt"
 echo.
 echo  Sending the code and setting up...

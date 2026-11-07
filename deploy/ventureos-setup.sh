@@ -23,8 +23,9 @@ touch "$ENVF"; chmod 600 "$ENVF"
 
 say "1. Web address"
 [ -n "$DOMAIN" ] || DOMAIN=$(getenv VENTUREOS_DOMAIN)
+[ -n "$DOMAIN" ] || DOMAIN=ventureos.africa
 DOMAIN=$(echo "$DOMAIN" | tr 'A-Z' 'a-z' | sed 's#^https\?://##; s#/.*$##; s/ //g')
-[ -n "$DOMAIN" ] || fail "no web address given. Run the file again and type the address (for example ventureos.scalegate.org)."
+[ -n "$DOMAIN" ] || fail "no web address given."
 setenv VENTUREOS_DOMAIN "$DOMAIN"
 echo "   $DOMAIN"
 
@@ -162,12 +163,15 @@ if ! echo " $got " | grep -q " $IP "; then
   exit 0
 fi
 echo "   $DOMAIN -> $IP (good)"
+NAMES="$DOMAIN"
+wgot=$(getent ahostsv4 "www.$DOMAIN" 2>/dev/null | awk '{print $1}' | sort -u | tr '\n' ' ')
+if echo " $wgot " | grep -q " $IP "; then NAMES="$DOMAIN www.$DOMAIN"; echo "   www.$DOMAIN -> $IP (good)"; else echo "   www.$DOMAIN is not pointed at the server (optional)."; fi
 if systemctl is-active --quiet caddy 2>/dev/null && [ -f /etc/caddy/Caddyfile ]; then
   CF=/etc/caddy/Caddyfile
   if grep -qE "(^|[ ,])$(echo "$DOMAIN" | sed 's/\./\\./g')([ ,{]|$)" "$CF"; then echo "   $DOMAIN is already in Caddy."
   else
     BACKUP="$CF.before-ventureos.$(date +%Y%m%d%H%M%S)"; cp "$CF" "$BACKUP"
-    printf '\n# VentureOS (ScaleGate Africa), added %s\n%s {\n\trequest_body {\n\t\tmax_size 25MB\n\t}\n\treverse_proxy 127.0.0.1:%s\n}\n' "$(date +%F)" "$DOMAIN" "$PORT" >> "$CF"
+    printf '\n# VentureOS (ScaleGate Africa), added %s\n%s {\n\trequest_body {\n\t\tmax_size 25MB\n\t}\n\treverse_proxy 127.0.0.1:%s\n}\n' "$(date +%F)" "$(echo $NAMES | sed 's/ /, /')" "$PORT" >> "$CF"
     caddy validate --config "$CF" --adapter caddyfile >/dev/null 2>&1 || { cp "$BACKUP" "$CF"; fail "the Caddy settings did not check out; the old file was put back."; }
   fi
   systemctl reload caddy && echo "   Caddy reloaded; it fetches the HTTPS certificate itself."
@@ -178,7 +182,7 @@ elif systemctl is-active --quiet nginx 2>/dev/null; then
 server {
     listen 80;
     listen [::]:80;
-    server_name $DOMAIN;
+    server_name $NAMES;
     client_max_body_size 25m;
     location / {
         proxy_pass http://127.0.0.1:$PORT;
@@ -196,7 +200,7 @@ NGINX
   nginx -t >/dev/null 2>&1 || { nginx -t; rm -f /etc/nginx/sites-enabled/ventureos; fail "the nginx settings do not check out."; }
   systemctl reload nginx
   command -v certbot >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq certbot python3-certbot-nginx >/dev/null; }
-  if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then certbot --nginx -n --agree-tos -m "$EMAIL" --redirect -d "$DOMAIN" || fail "the HTTPS certificate could not be issued."; fi
+  if [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then certbot --nginx -n --agree-tos -m "$EMAIL" --redirect $(for n in $NAMES; do printf -- '-d %s ' "$n"; done) || fail "the HTTPS certificate could not be issued."; fi
   systemctl reload nginx
 else
   fail "neither Caddy nor nginx is running on the server."

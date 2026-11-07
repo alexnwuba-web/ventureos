@@ -75,8 +75,8 @@ less sponsorship, repayments, write-offs and conversions, with a running balance
 ## Put it on the Lagos server
 
 1. Download this code from GitHub (green **Code** button → **Download ZIP**) and unzip it.
-2. Point the web address at the server: an **A record** for the address (e.g. `ventureos.scalegate.org`) → `102.204.2.229`.
-3. Double-click `deploy\windows\Install-or-update-VentureOS.bat`, type the web address, and enter your SSH key
+2. Point **ventureos.africa** at the server: an **A record** for `ventureos.africa` (and, optionally, `www.ventureos.africa`) → `102.204.2.229`.
+3. Double-click `deploy\windows\Install-or-update-VentureOS.bat`, press Enter for ventureos.africa, and enter your SSH key
    passphrase when asked. The last line says **VENTUREOS IS LIVE**.
 
 To update later: download the new code and double-click the same file (press Enter to keep the address). The
@@ -100,7 +100,7 @@ VENTUREOS_TEST_DATABASE_URL=postgres://… npm test          # a throwaway datab
 | Setting | Purpose |
 |---|---|
 | `VENTUREOS_DATABASE_URL` | Its own PostgreSQL database |
-| `VENTUREOS_BASE_URL` | e.g. `https://ventureos.scalegate.org` |
+| `VENTUREOS_BASE_URL` | `https://ventureos.africa` |
 | `VENTUREOS_SESSION_SECRET` | Signs sessions |
 | `VENTUREOS_ADMINS` | Emails that are administrators on first sign-in (default `alex@scalegate.org,alexnwuba@gmail.com`) |
 | `VENTUREOS_UPLOADS` | Where documents are stored |
