@@ -10,7 +10,8 @@
       <tbody>
       <% for (const d of list) { const mine = docs.filter((x) => x.doc_type === d.key); %>
         <tr>
-          <td><b><%= d.label %></b><% if (d.isRequired) { %><span class="req">*</span><% } %><% if (d.help) { %><div class="muted small"><%= d.help %></div><% } %></td>
+          <td><b><%= d.label %></b><% if (d.isRequired) { %><span class="req">*</span><% } %><% if (d.help) { %><div class="muted small"><%= d.help %></div><% } %>
+            <% if (d.template) { %><div style="margin-top:6px"><a class="btn small ghost" href="<%= d.template %>" download>Download the questionnaire (Word)</a></div><% } %></td>
           <td>
             <% if (!mine.length) { %><span class="muted small"><%= d.isRequired ? 'Required — not uploaded yet' : 'Optional' %></span><% } %>
             <% for (const x of mine) { %>

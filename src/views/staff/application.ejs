@@ -107,7 +107,7 @@
             <thead><tr><th>Document</th><th>Files</th></tr></thead>
             <tbody>
             <% for (const d of docList) { const files = docs.filter((x) => x.doc_type === d.key); if (!files.length && !d.isRequired) continue; %>
-              <tr><td><b><%= d.label %></b><%= d.isRequired ? ' *' : '' %></td><td>
+              <tr><td><b><%= d.label %></b><%= d.isRequired ? ' *' : '' %><% if (d.template) { %><div class="small"><a href="<%= d.template %>" download>blank template</a></div><% } %></td><td>
                 <% if (!files.length) { %><span class="badge red">Missing</span><% } %>
                 <% for (const x of files) { %>
                   <div class="row small" style="margin-bottom:6px">

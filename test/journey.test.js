@@ -62,7 +62,11 @@ test('a founder applies for equity and debt, staff review it and the committee d
   // Documents still missing
   r = await founder.get(`/my/a/${ref}/review`).expect(200);
   assert.match(r.text, /Bank statements/);
-  for (const t of ['pitch_deck', 'business_plan', 'founder_cvs', 'founder_ids', 'incorporation', 'memart', 'financial_model', 'financial_statements',
+  assert.match(r.text, /Business background questionnaire/);
+  r = await founder.get(`/my/a/${ref}/documents`).expect(200);
+  assert.match(r.text, /VentureOS_Business_Background_Questionnaire.docx/);
+  await founder.get('/static/templates/VentureOS_Business_Background_Questionnaire.docx').expect(200);
+  for (const t of ['business_background', 'tax_returns', 'pitch_deck', 'business_plan', 'founder_cvs', 'founder_ids', 'incorporation', 'memart', 'financial_model', 'financial_statements',
     'management_accounts', 'valuation_workings', 'bank_statements', 'tax_clearance', 'loan_letters']) {
     await founder.post(`/my/a/${ref}/documents`).field('doc_type', t).attach('file', Buffer.from('%PDF-1.4 test'), `${t}.pdf`).expect(302);
   }
