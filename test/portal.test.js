@@ -34,6 +34,7 @@ test('a meeting: invitation, reply, calendar file, record and follow-ups, reques
   await founder.post(`/staff/a/${ref}/meetings`).type('form').send({ starts_at: future(3) }).expect(403);
   await admin.post(`/staff/a/${ref}/meetings`).type('form').send({ kind: 'initial', starts_at: future(3), duration_min: '45', mode: 'in_person', agenda: 'Valuation basis' }).expect(302);
   const invite = mail.outbox.filter((m) => m.to === 'tola@example.ng' && /Invitation/.test(m.subject)).pop();
+  assert.match(invite.replyTo || '', /@scalegate\.test/); // replies go to the officer who sent the invitation
   assert.ok(invite.icalEvent && /BEGIN:VCALENDAR/.test(invite.icalEvent.content), 'calendar invitation attached');
   assert.match(invite.text, /Sinari Daranijo/);
 

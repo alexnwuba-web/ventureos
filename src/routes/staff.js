@@ -119,7 +119,7 @@ r.post('/staff/a/:ref/status', async (req, res) => {
     ? [`Dear ${app.applicant_name || 'founder'},`, `We need more information on your application ${app.ref} (${app.venture_name}):`, note, 'Your application is open again for changes. Update it and send it back to us.']
     : [`Dear ${app.applicant_name || 'founder'},`, `Your application ${app.ref} (${app.venture_name}) has moved to: ${st.founder}.`, ...(note && W.isDecision(to) ? [note] : []),
       ...(W.isDecision(to) ? [academyLine(to === 'declined')] : [])];
-  await mail.send({ to: app.applicant_email, subject: `VentureOS ${app.ref}: ${st.founder}`, lines, link: { label: 'See your application', url: `${config.baseUrl}/my/a/${app.ref}` } });
+  await mail.send({ replyTo: mail.officer(req.person), to: app.applicant_email, subject: `VentureOS ${app.ref}: ${st.founder}`, lines, link: { label: 'See your application', url: `${config.baseUrl}/my/a/${app.ref}` } });
   res.redirect(`/staff/a/${app.ref}?n=moved`);
 });
 
@@ -187,7 +187,7 @@ r.post('/staff/a/:ref/message', async (req, res) => {
     await db.query('INSERT INTO messages (application_id, author_id, body, internal) VALUES ($1,$2,$3,$4)', [app.id, req.person.id, body, internal]);
     await audit(req.person.id, app.id, internal ? 'note' : 'message', null);
     if (!internal) {
-      await mail.send({ to: app.applicant_email, subject: `A message about your VentureOS application ${app.ref}`,
+      await mail.send({ replyTo: mail.officer(req.person), to: app.applicant_email, subject: `A message about your VentureOS application ${app.ref}`,
         lines: [`Dear ${app.applicant_name || 'founder'},`, body], link: { label: 'Reply in VentureOS', url: `${config.baseUrl}/my/a/${app.ref}#messages` } });
     }
   }
