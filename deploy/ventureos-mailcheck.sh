@@ -7,12 +7,18 @@ TO="${SIGNIN_EMAIL:-alex@scalegate.org}"
 echo; echo "== 1. Email settings in $ENVF"
 if [ ! -f "$ENVF" ]; then echo "   MISSING: $ENVF"; exit 1; fi
 for k in SMTP_HOST SMTP_PORT SMTP_USER SMTP_FROM; do echo "   $k = $(grep -m1 "^$k=" "$ENVF" | cut -d= -f2-)"; done
-p=$(grep -m1 '^SMTP_PASS=' "$ENVF" | cut -d= -f2-); echo "   SMTP_PASS = $( [ -n "$p" ] && echo "(set, ${#p} characters)" || echo '(EMPTY)')"
+p=$(grep -m1 '^SMTP_PASS=' "$ENVF" | cut -d= -f2-); p="${p#\'}"; p="${p%\'}"; echo "   SMTP_PASS = $( [ -n "$p" ] && echo "(set, ${#p} characters)" || echo '(EMPTY)')"
 echo; echo "== 2. Email lines in the VentureOS log (last 6 hours)"
 journalctl -u ventureos --since "6 hours ago" --no-pager 2>/dev/null | grep -i "\[mail\]" | grep -v "is your VentureOS sign-in code" | tail -15 | sed 's/^/   /'
 [ "${PIPESTATUS[1]}" = "0" ] || echo "   (no email lines)"
 echo; echo "== 3. Test: connect to the mail server and send a test email to $TO"
-cd "$APP" && set -a && . "$ENVF" && set +a && SIGNIN_EMAIL="$TO" node -e '
+cd "$APP" && ENVF="$ENVF" SIGNIN_EMAIL="$TO" node -e '
+// Read the settings file the way the VentureOS service sees it (no shell expansion, outer quotes removed).
+for (const l of require("fs").readFileSync(process.env.ENVF, "utf8").split("\n")) {
+  const m = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(l.trim()); if (!m) continue;
+  let v = m[2]; if (v.length > 1 && ((v[0] === "\x27" && v.endsWith("\x27")) || (v[0] === "\"" && v.endsWith("\"")))) v = v.slice(1, -1);
+  process.env[m[1]] = v;
+}
 const nodemailer = require("nodemailer");
 const port = Number(process.env.SMTP_PORT || 587);
 const t = nodemailer.createTransport({ host: process.env.SMTP_HOST, port, secure: port === 465,
