@@ -1,0 +1,16 @@
+<%- include('../partials/head') %>
+<div class="wrap" style="max-width:560px">
+  <div class="card">
+    <h1>Your details</h1>
+    <p class="muted">Signed in as <b><%= person.email %></b>.</p>
+    <% if (error) { %><div class="notice err"><%= error %></div><% } %>
+    <form method="post" action="/my/profile">
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="field"><label class="lbl" for="name">Full name<span class="req">*</span></label><input id="name" type="text" name="name" value="<%= person.name %>" required autocomplete="name"></div>
+      <div class="field"><label class="lbl" for="phone">Phone (WhatsApp if you have it)</label><input id="phone" type="tel" name="phone" value="<%= person.phone || '' %>" autocomplete="tel"></div>
+      <div class="field"><label class="lbl" for="country">Country you live in</label><input id="country" type="text" name="country" value="<%= person.country || '' %>" autocomplete="country-name"></div>
+      <button class="btn" type="submit">Save</button>
+    </form>
+  </div>
+</div>
+<%- include('../partials/foot') %>

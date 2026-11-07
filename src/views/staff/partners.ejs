@@ -1,0 +1,25 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <h1>Partner enquiries</h1>
+  <p class="muted">Organisations that want to fund or co-design programmes, sponsor founders or the VentureOS Center, or invest. Answer within ten working days.</p>
+  <% if (!list.length) { %><div class="card muted">None yet. The form is at <a href="/partner">/partner</a>.</div><% } %>
+  <% for (const e of list) { const wd = workingDaysSince(e.created_at); %>
+    <div class="card">
+      <div class="row between">
+        <div><b><%= e.organisation %></b> <span class="muted small">· <%= e.org_type || '—' %><%= e.country ? ' · ' + e.country : '' %></span></div>
+        <div class="row"><% if (e.status === 'new') { %><span class="badge <%= wd >= 10 ? 'red' : wd >= 7 ? 'amber' : 'muted' %>">Answer by <%= date(answerDue(e.created_at)) %></span><% } %><span class="badge"><%= e.status.replace('_', ' ') %></span></div>
+      </div>
+      <p class="small" style="margin:8px 0 4px"><%= e.name %><%= e.role ? ', ' + e.role : '' %> · <a href="mailto:<%= e.email %>"><%= e.email %></a><%= e.phone ? ' · ' + e.phone : '' %> · <%= when(e.created_at) %></p>
+      <p class="small" style="margin:0 0 4px"><b>Interested in:</b> <%= e.interests.map((x) => PARTNER_INTERESTS[x] || x).join('; ') %><%= e.budget ? ' · Budget: ' + e.budget : '' %></p>
+      <% if (e.message) { %><p class="small answer" style="margin:0"><%= e.message %></p><% } %>
+      <% if (staff === 'admin') { %>
+        <form method="post" action="/staff/partners/<%= e.id %>" class="row" style="margin-top:10px">
+          <select name="status" style="width:auto"><% for (const s of ['new','contacted','in_discussion','agreed','closed']) { %><option value="<%= s %>" <%= e.status === s ? 'selected' : '' %>><%= s.replace('_', ' ') %></option><% } %></select>
+          <input type="text" name="staff_note" value="<%= e.staff_note || '' %>" placeholder="Note" style="flex:1;min-width:200px">
+          <button class="btn small ghost" type="submit">Save</button>
+        </form>
+      <% } %>
+    </div>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

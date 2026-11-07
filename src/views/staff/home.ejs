@@ -1,0 +1,43 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <h1>Applications</h1>
+  <% if (staff === 'reviewer') { %><p class="muted">Applications assigned to you for review.</p><% } %>
+  <% if (counts.length) { const by = Object.fromEntries(counts.map((c) => [c.status, c.n])); %>
+    <div class="grid g4" style="margin:16px 0">
+      <% const late = apps.filter((a) => onClock(a) && workingDaysSince(a.submitted_at) >= 10).length; %>
+      <a class="metric" href="/staff?status=submitted" style="text-decoration:none"><span>New initial submissions</span><% if (late) { %><span class="badge red" style="float:right"><%= late %> past 10 days</span><% } %><b><%= (by.submitted || 0) + (by.screening || 0) %></b></a>
+      <a class="metric" href="/staff?status=full_submitted" style="text-decoration:none"><span>Full documentation in</span><b><%= (by.full_submitted || 0) %></b><span class="small" style="text-transform:none;letter-spacing:0"><%= by.full_requested || 0 %> invited, still writing</span></a>
+      <a class="metric" href="/staff?status=accepted" style="text-decoration:none"><span>Accepted / offers</span><b><%= (by.accepted || 0) + (by.offer || 0) %></b></a>
+      <div class="metric"><span>Drafts being written</span><b><%= drafts %></b></div>
+    </div>
+  <% } %>
+  <form class="card row" method="get" action="/staff" style="padding:12px 14px">
+    <input type="text" name="q" value="<%= q.q || '' %>" placeholder="Search venture, reference or email" style="max-width:280px">
+    <select name="status" style="max-width:200px"><option value="">Any stage</option><% for (const [k, s] of Object.entries(STATUSES)) { if (k === 'draft') continue; %><option value="<%= k %>" <%= q.status === k ? 'selected' : '' %>><%= s.label %></option><% } %></select>
+    <select name="kind" style="max-width:170px"><option value="">Any request</option><% for (const [k, v] of Object.entries(KINDS)) { %><option value="<%= k %>" <%= q.kind === k ? 'selected' : '' %>><%= v.short %></option><% } %></select>
+    <select name="pillar" style="max-width:140px"><option value="">Any pillar</option><% for (const p of ['make','grow','create']) { %><option value="<%= p %>" <%= q.pillar === p ? 'selected' : '' %>><%= pillarLabel(p) %></option><% } %></select>
+    <button class="btn small" type="submit">Filter</button> <a class="small" href="/staff">Clear</a>
+    <% if (staff === 'admin') { %><a class="small muted" href="/staff?vetoed=1" style="margin-left:auto">Vetoed</a><% } %>
+  </form>
+  <% if (!apps.length) { %><div class="card muted">No applications here yet.</div><% } else { %>
+  <div class="card scrollx" style="padding:0">
+    <table class="list">
+      <thead><tr><th>Venture</th><th>Request</th><th>Stage</th><th>Reviews</th><th>Score</th><th>Sent</th><th>Answer due</th></tr></thead>
+      <tbody>
+      <% for (const a of apps) { const st = status(a.status); %>
+        <tr>
+          <td><a href="/staff/a/<%= a.ref %>"><b><%= a.venture_name %></b></a><div class="small muted"><%= a.ref %> · <%= a.applicant_name || '' %><%= a.country ? ' · ' + a.country : '' %></div></td>
+          <td><% if (a.pillar) { %><span class="badge <%= a.pillar %>"><%= pillarLabel(a.pillar) %></span> <% } %><% for (const k of a.kinds) { %><span class="badge kind"><%= kindLabel(k) %></span> <% } %></td>
+          <td><span class="badge <%= st.tone %>"><%= st.label %></span><div class="small muted">Part <%= a.stage %></div></td>
+          <td class="small"><%= a.reviews_done %> / <%= a.reviewers %></td>
+          <td><%= a.avg_score != null ? a.avg_score : '—' %></td>
+          <td class="small muted nowrap"><%= date(a.submitted_at) %></td>
+          <td class="small nowrap"><% if (onClock(a)) { const wd = workingDaysSince(a.submitted_at); %><span class="badge <%= wd >= 10 ? 'red' : wd >= 7 ? 'amber' : 'muted' %>" title="Day <%= wd %> of 10 working days"><%= date(answerDue(a.submitted_at)) %></span><% } else { %><span class="muted">—</span><% } %></td>
+        </tr>
+      <% } %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

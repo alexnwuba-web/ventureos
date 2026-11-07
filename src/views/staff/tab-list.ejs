@@ -1,0 +1,17 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <h1>Innovator tab</h1>
+  <p class="muted">Each resident venture's carrying costs — housing, meals, workspace and labs, studio time, venture services — less sponsorship, repaid at 10–15% of net revenue after the threshold. No qualifying revenue within 3 years of completion: the balance is written off.</p>
+  <div class="card" style="padding:0">
+    <table class="list">
+      <thead><tr><th>Venture</th><th>Founder</th><th>Entries</th><th class="right">Balance</th></tr></thead>
+      <tbody>
+      <% if (!ventures.length) { %><tr><td colspan="4" class="muted">No resident ventures yet.</td></tr><% } %>
+      <% for (const v of ventures) { %>
+        <tr><td><a href="/staff/tab/<%= v.id %>"><b><%= v.name %></b></a><% if (v.accepted_ref) { %> <span class="badge green">accepted</span><% } %></td><td><%= v.owner_name %></td><td><%= v.entries %></td><td class="right"><%= full(v.balance) %></td></tr>
+      <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<%- include('../partials/foot') %>

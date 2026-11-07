@@ -1,0 +1,9 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <p class="eyebrow">VentureOS</p>
+  <h1>Investment presentations and meetups</h1>
+  <p class="lead">Every month founders present to investors, and the VentureOS community meets in Lagos. Register to attend, or submit your venture to present.</p>
+  <% if (!events.length) { %><div class="card muted">The next dates will be announced here soon.</div><% } %>
+  <div class="grid g2" style="margin-top:16px"><% for (const e of events) { %><%- include('_card', { e, E, P }) %><% } %></div>
+</div>
+<%- include('../partials/foot') %>

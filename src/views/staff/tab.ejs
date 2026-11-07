@@ -1,0 +1,22 @@
+<%- include('../partials/head') %>
+<div class="wrap narrow">
+  <p class="small"><a href="/staff/tab">← Innovator tab</a></p>
+  <h1><%= venture.name %></h1>
+  <p class="muted"><%= venture.owner_name %> · <%= venture.owner_email %></p>
+  <%- include('../partials/ledger', { entries }) %>
+  <% if (canPost) { %>
+  <form class="card" method="post" action="/staff/tab/<%= venture.id %>">
+    <h3 style="margin-top:0">Post an entry</h3>
+    <div class="grid g2">
+      <div class="field"><label class="lbl">For</label><select name="kind" required><% for (const [k, l] of Object.entries(TAB_KINDS)) { %><option value="<%= k %>"><%= l %></option><% } %></select></div>
+      <div class="field"><label class="lbl">Amount</label><div class="row" style="flex-wrap:nowrap"><select name="currency" style="width:90px"><option>NGN</option><option>USD</option><option>EUR</option><option>GBP</option></select><input type="text" name="amount" inputmode="decimal" required></div>
+        <div class="help">Credits (sponsorship, repayment, write-off, conversion) are taken off the balance automatically.</div></div>
+      <div class="field"><label class="lbl">Period</label><input type="text" name="period" placeholder="2027-07"></div>
+      <div class="field"><label class="lbl">Note</label><input type="text" name="memo"></div>
+      <div class="field"><label class="lbl">Adjustment direction</label><select name="direction"><option value="debit">Adds to the balance</option><option value="credit">Reduces the balance</option></select></div>
+    </div>
+    <button class="btn" type="submit">Post</button>
+  </form>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

@@ -1,0 +1,21 @@
+<%
+  // Shows one section's answers read-only. In: s (section), answers, Q.
+  const shown = s.fields.filter((f) => Q.visible(f, answers));
+%>
+<table class="kv" style="margin-top:8px">
+<% for (const f of shown) { const v = answers[f.key]; %>
+  <% if (f.type === 'table') { const rows = Array.isArray(v) ? v.filter((r) => f.columns.some((c) => r[c.key] !== '' && r[c.key] != null)) : []; %>
+    <tr><td colspan="2"><div class="muted" style="margin-bottom:6px"><%= f.label %></div>
+      <% if (!rows.length) { %><span class="muted">—</span><% } else { %>
+        <div class="scrollx"><table class="list small" style="border:1px solid var(--line)">
+          <thead><tr><% if (f.fixedRows) { %><th></th><% } %><% for (const c of f.columns) { %><th><%= c.label %></th><% } %></tr></thead>
+          <tbody><% for (const r of rows) { %><tr><% if (f.fixedRows) { %><td><b><%= r.label %></b></td><% } %><% for (const c of f.columns) { %>
+            <td class="<%= ['money','number','percent'].includes(c.type) ? 'right nowrap' : '' %>"><%= ['money','number'].includes(c.type) ? full(r[c.key]) : (c.type === 'percent' && r[c.key] !== '' && r[c.key] != null ? r[c.key] + '%' : (r[c.key] || '')) %></td><% } %></tr><% } %></tbody>
+        </table></div>
+      <% } %>
+    </td></tr>
+  <% } else { const t = answerText(f, v); %>
+    <tr><td><%= f.label %></td><td class="answer"><% if (t && f.type === 'url') { %><a href="<%= t %>" target="_blank" rel="noopener"><%= t %></a><% } else { %><%= t || '—' %><% } %></td></tr>
+  <% } %>
+<% } %>
+</table>

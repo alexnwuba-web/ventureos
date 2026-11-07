@@ -1,0 +1,19 @@
+<div class="grid g3">
+  <div class="field"><label class="lbl">Title</label><input type="text" name="title" value="<%= e.title || '' %>" required></div>
+  <div class="field"><label class="lbl">Type</label><select name="kind"><% for (const [k, v] of [['investment','Investment presentation'],['meetup','Meetup'],['demo_day','Demo Day'],['other','Other']]) { %><option value="<%= k %>" <%= e.kind === k ? 'selected' : '' %>><%= v %></option><% } %></select></div>
+  <div class="field"><label class="lbl">Date and time (Lagos)</label><input type="datetime-local" name="starts_at" value="<%= e.starts_at ? P.toLocal(e.starts_at) : '' %>" required></div>
+  <div class="field"><label class="lbl">Minutes</label><input type="number" name="duration_min" value="<%= e.duration_min || 120 %>"></div>
+  <div class="field"><label class="lbl">Places to attend <span class="muted small">(empty = no limit)</span></label><input type="number" name="capacity" value="<%= e.capacity || '' %>"></div>
+  <div class="field"><label class="lbl">Ventures presenting <span class="muted small">(0 = meetup only)</span></label><input type="number" name="pitch_slots" value="<%= e.pitch_slots || '' %>"></div>
+</div>
+<div class="grid g3">
+  <div class="field"><label class="lbl">Venue</label><input type="text" name="venue" value="<%= e.venue || '' %>"></div>
+  <div class="field"><label class="lbl">Online link <span class="muted small">(sent to registered people)</span></label><input type="text" name="online_link" value="<%= e.online_link || '' %>"></div>
+  <div class="field"><label class="lbl">Submissions to present close</label><input type="date" name="submissions_close" value="<%= e.submissions_close || '' %>"></div>
+</div>
+<div class="field"><label class="lbl">Description</label><textarea name="summary"><%= e.summary || '' %></textarea></div>
+<div class="row" style="margin-bottom:14px">
+  <label class="choice"><input type="checkbox" name="public" value="yes" <%= e.public ? 'checked' : '' %>> Published on the front page</label>
+  <label class="choice"><input type="checkbox" name="registration_open" value="yes" <%= e.registration_open ? 'checked' : '' %>> Registration open</label>
+  <label class="choice"><input type="checkbox" name="submissions_open" value="yes" <%= e.submissions_open ? 'checked' : '' %>> Submissions to present open</label>
+</div>

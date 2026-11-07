@@ -1,0 +1,52 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <div class="row between">
+    <div><h1>Your applications</h1><p class="muted" style="margin:0">Hello <%= person.name %>. Save as you go — nothing is sent until you press Send.</p></div>
+    <a class="btn gold" href="/my/new">New application</a>
+  </div>
+  <% for (const a of apps.filter((x) => x.awaiting || x.requests || x.actions || x.status === 'full_requested' || x.status === 'info_requested')) { %>
+    <div class="notice warn" style="margin-top:16px"><b><%= a.venture_name %>:</b>
+      <%= [a.status === 'full_requested' ? 'you are invited to complete the full documentation' : '', a.status === 'info_requested' ? 'we need more information' : '',
+           a.awaiting ? `${a.awaiting} meeting invitation${a.awaiting > 1 ? 's' : ''} to answer` : '', a.requests ? `${a.requests} document${a.requests > 1 ? 's' : ''} requested` : '',
+           a.actions ? `${a.actions} follow-up${a.actions > 1 ? 's' : ''} to do` : ''].filter(Boolean).join(' · ') %>
+      — <a href="/my/a/<%= a.ref %><%= a.awaiting ? '/meetings' : (a.requests || a.actions) ? '/followups' : '' %>">open</a></div>
+  <% } %>
+  <div style="margin-top:20px">
+  <% if (!apps.length) { %>
+    <div class="card"><p>You have not started an application yet.</p><p><a class="btn" href="/my/new">Start one</a></p></div>
+  <% } else { %>
+    <table class="list card" style="padding:0">
+      <thead><tr><th>Venture</th><th>Applying for</th><th>Status</th><th>Last change</th><th></th></tr></thead>
+      <tbody>
+      <% for (const a of apps) { const st = status(a.status); %>
+        <tr>
+          <td><a href="/my/a/<%= a.ref %>"><b><%= a.venture_name %></b></a><div class="muted small"><%= a.ref %><% if (a.pillar) { %> · <span class="badge <%= a.pillar %>"><%= pillarLabel(a.pillar) %></span><% } %></div></td>
+          <td><% for (const k of a.kinds) { %><span class="badge kind"><%= kindLabel(k) %></span> <% } %></td>
+          <td><span class="badge <%= st.tone %>"><%= st.founder || st.label %></span><% if (a.next_meeting) { %><div class="small muted" style="margin-top:4px">Next meeting <%= when(a.next_meeting) %></div><% } %></td>
+          <td class="small muted"><%= when(a.updated_at) %></td>
+          <td class="right"><a class="btn small ghost" href="/my/a/<%= a.ref %>"><%= ['draft','info_requested'].includes(a.status) ? 'Continue' : 'Open' %></a></td>
+        </tr>
+      <% } %>
+      </tbody>
+    </table>
+  <% } %>
+  </div>
+  <% if (presentations.length || registrations.length) { %>
+    <h2>Presentations and meetups</h2>
+    <% for (const s of presentations) { %>
+      <div class="card row between"><span><b><%= s.venture_name %></b> presenting at <a href="/events/<%= s.event_id %>"><%= s.event_title %></a> <span class="muted small">· <%= P.whenLagos(s.starts_at) %></span></span>
+        <span class="badge <%= s.status === 'selected' ? 'green' : s.status === 'declined' ? 'red' : 'amber' %>"><%= E.SUB_STATUS[s.status] %></span></div>
+    <% } %>
+    <% for (const e of registrations) { %>
+      <div class="card row between"><span>Attending <a href="/events/<%= e.id %>"><%= e.title %></a> <span class="muted small">· <%= P.whenLagos(e.starts_at) %></span></span><span class="badge green">Registered</span></div>
+    <% } %>
+  <% } %>
+  <p class="small" style="margin-top:20px"><a href="/events">See the monthly investment presentations and meetups →</a></p>
+  <% if (tab.length) { %>
+    <h2>Innovator tab</h2>
+    <% for (const t of tab) { %>
+      <div class="card row between"><span><b><%= t.name %></b></span><span>Balance <b><%= t.currency %> <%= full(t.balance) %></b> &nbsp; <a href="/my/tab/<%= t.id %>">Statement</a></span></div>
+    <% } %>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

@@ -1,0 +1,29 @@
+<%- include('../partials/head') %>
+<div class="wrap narrow">
+  <p class="small"><a href="/my/a/<%= app.ref %>">← <%= app.venture_name %></a> · Part <%= index + 1 %> of <%= count %></p>
+  <h1><%= section.title %></h1>
+  <% if (section.intro) { %><p class="muted"><%= section.intro %></p><% } %>
+  <% if (!editable) { %><div class="notice">This application has been sent, so answers are shown read-only.</div><% } %>
+  <%
+    // Values of questions in other parts that decide what shows here.
+    const ext = [...new Set(section.fields.filter((f) => f.showIf && !section.fields.some((g) => g.key === f.showIf.key)).map((f) => f.showIf.key))];
+  %>
+  <% for (const k of ext) { %><span hidden data-answer="<%= k %>" data-value="<%= Array.isArray(answers[k]) ? answers[k][0] : (answers[k] || '') %>"></span><% } %>
+  <form method="post" action="/my/a/<%= app.ref %>/s/<%= section.key %>" class="card" data-guard>
+    <% for (const f of section.fields) { %>
+      <%- include('../partials/field', { f, v: answers[f.key], required: Q.isRequired(f, section, app.kinds, { ...answers, [f.showIf ? f.showIf.key : '_']: (f.showIf ? f.showIf.in[0] : null) }), hidden: !Q.visible(f, answers), dis: editable ? '' : 'disabled' }) %>
+    <% } %>
+    <% if (editable) { %>
+      <div class="row between" style="margin-top:8px">
+        <div class="row">
+          <% if (prev) { %><a class="btn ghost" href="/my/a/<%= app.ref %>/s/<%= prev.key %>">← Back</a><% } %>
+          <button class="btn ghost" type="submit" name="go" value="stay">Save</button>
+        </div>
+        <button class="btn" type="submit" name="go" value="next"><%= next ? 'Save and continue →' : 'Save and go to documents →' %></button>
+      </div>
+    <% } else { %>
+      <div class="row between"><% if (prev) { %><a class="btn ghost" href="/my/a/<%= app.ref %>/s/<%= prev.key %>">← Back</a><% } %><% if (next) { %><a class="btn ghost" href="/my/a/<%= app.ref %>/s/<%= next.key %>">Next →</a><% } %></div>
+    <% } %>
+  </form>
+</div>
+<%- include('../partials/foot') %>

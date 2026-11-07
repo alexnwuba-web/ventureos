@@ -1,0 +1,30 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <h1>Staff</h1>
+  <p class="muted">Admins run everything. Reviewers see only applications assigned to them. The committee sees all applications and records decisions. Finance keeps the innovator tab. <%= founders %> founder account<%= founders === 1 ? '' : 's' %>.</p>
+  <% if (error) { %><div class="notice err"><%= error %></div><% } %>
+  <div class="card" style="padding:0">
+    <table class="list">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Assigned</th><th>Last signed in</th></tr></thead>
+      <tbody>
+      <% for (const p of staffList) { %>
+        <tr><td><%= p.name || '—' %></td><td><%= p.email %></td>
+          <td><% if (p.id === person.id) { %><%= p.staff_role %> (you)<% } else { %>
+            <form method="post" action="/staff/people/<%= p.id %>/role" class="row"><select name="role" style="width:auto"><% for (const r of ['admin','reviewer','committee','finance']) { %><option <%= p.staff_role === r ? 'selected' : '' %>><%= r %></option><% } %><option value="">remove from staff</option></select><button class="btn small ghost" type="submit">Set</button></form>
+          <% } %></td>
+          <td><%= p.assigned %></td><td class="small muted"><%= when(p.last_seen_at) %></td></tr>
+      <% } %>
+      </tbody>
+    </table>
+  </div>
+  <form class="card" method="post" action="/staff/people">
+    <h3 style="margin-top:0">Add a member of staff</h3>
+    <div class="grid g3">
+      <div class="field"><label class="lbl">Name</label><input type="text" name="name"></div>
+      <div class="field"><label class="lbl">Email</label><input type="email" name="email" required></div>
+      <div class="field"><label class="lbl">Role</label><select name="role"><option>reviewer</option><option>committee</option><option>finance</option><option>admin</option></select></div>
+    </div>
+    <button class="btn" type="submit">Add and email them</button>
+  </form>
+</div>
+<%- include('../partials/foot') %>

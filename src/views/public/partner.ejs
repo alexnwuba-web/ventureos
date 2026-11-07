@@ -1,0 +1,40 @@
+<%- include('../partials/head') %>
+<div class="wrap narrow">
+  <p class="eyebrow">ScaleGate Africa · Impact initiatives</p>
+  <h1>Partner with us</h1>
+  <p class="lead">For foundations, development-finance institutions, government agencies, companies, investors, universities and donors. We design and deliver programmes with partners around specific communities and challenges — and VentureOS brings the founders to them.</p>
+  <div class="grid g2" style="margin:18px 0">
+    <div class="card small"><b>Founder and venture-building programmes</b><div class="muted">Cohort design, founder selection, a practical curriculum and direct delivery.</div></div>
+    <div class="card small"><b>Open innovation and challenge programmes</b><div class="muted">A structured route to find, test and support solutions to your institutional or industry challenge.</div></div>
+    <div class="card small"><b>Market access programmes</b><div class="muted">Preparing ventures for new markets, including Europe, and connecting them with customers, partners and operating support.</div></div>
+    <div class="card small"><b>Venture studios</b><div class="muted">Building new ventures around your capability, technology or a defined market problem.</div></div>
+    <div class="card small"><b>Venture Philanthropy</b><div class="muted">Sponsor free venture building, mentorship and connections for young people who would not otherwise have access.</div></div>
+    <div class="card small"><b>The VentureOS Center</b><div class="muted">Sponsor a challenge track, residencies, a lab or studio, or fund a corporate challenge in exchange for first access to the solution.</div></div>
+  </div>
+  <% if (sent) { %>
+    <div class="notice ok"><b>Thank you.</b> A partner will be in touch within ten working days to arrange a call. We have emailed you a confirmation.</div>
+  <% } else { %>
+  <% if (error) { %><div class="notice err"><%= error %></div><% } %>
+  <form class="card" method="post" action="/partner">
+    <h2 style="margin-top:0">Tell us about your organisation</h2>
+    <div class="grid g2">
+      <div class="field"><label class="lbl">Your name<span class="req">*</span></label><input type="text" name="name" value="<%= b.name || '' %>" required></div>
+      <div class="field"><label class="lbl">Your role</label><input type="text" name="role" value="<%= b.role || '' %>"></div>
+      <div class="field"><label class="lbl">Organisation<span class="req">*</span></label><input type="text" name="organisation" value="<%= b.organisation || '' %>" required></div>
+      <div class="field"><label class="lbl">Type of organisation</label><select name="org_type"><option value="">Choose…</option><% for (const t of ORG_TYPES) { %><option <%= b.org_type === t ? 'selected' : '' %>><%= t %></option><% } %></select></div>
+      <div class="field"><label class="lbl">Email<span class="req">*</span></label><input type="email" name="email" value="<%= b.email || '' %>" required></div>
+      <div class="field"><label class="lbl">Phone or WhatsApp</label><input type="tel" name="phone" value="<%= b.phone || '' %>"></div>
+      <div class="field"><label class="lbl">Country</label><input type="text" name="country" value="<%= b.country || '' %>"></div>
+      <div class="field"><label class="lbl">Indicative budget or contribution (optional)</label><input type="text" name="budget" value="<%= b.budget || '' %>"></div>
+    </div>
+    <div class="field"><label class="lbl">What interests you?<span class="req">*</span></label>
+      <% for (const [k, v] of Object.entries(PARTNER_INTERESTS)) { %><label class="choice"><input type="checkbox" name="interests[]" value="<%= k %>" <%= [].concat(b.interests || []).includes(k) ? 'checked' : '' %>><span><%= v %></span></label><% } %></div>
+    <div class="field"><label class="lbl">The community, challenge or market you have in mind</label><textarea name="message"><%= b.message || '' %></textarea></div>
+    <div style="position:absolute;left:-9999px" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+    <label class="checkline" style="margin-bottom:16px"><input type="checkbox" name="consent" required><span>ScaleGate Africa may contact me about this enquiry and keep these details for that purpose.</span></label>
+    <button class="btn gold" type="submit">Send</button>
+    <p class="small muted" style="margin:10px 0 0">Sending this does not create a service agreement or a partnership commitment; both are agreed in writing.</p>
+  </form>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

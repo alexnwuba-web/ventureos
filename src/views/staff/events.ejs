@@ -1,0 +1,30 @@
+<%- include('../partials/head') %>
+<%
+  const lagosNow = new Date(Date.now() + 3600e3);
+%>
+<div class="wrap">
+  <h1>Presentations and meetups</h1>
+  <p class="muted">Monthly investment presentations and meetups. Published events appear on the front page, where people register and founders submit to present. Use "Copy to next month" to set up the next one.</p>
+  <div class="card" style="padding:0">
+    <table class="list">
+      <thead><tr><th>When (Lagos)</th><th>Event</th><th>Registered</th><th>To present</th><th>Status</th></tr></thead>
+      <tbody>
+      <% if (!events.length) { %><tr><td colspan="5" class="muted">None yet.</td></tr><% } %>
+      <% for (const e of events) { %>
+        <tr style="<%= new Date(e.starts_at) < new Date() ? 'opacity:.65' : '' %>"><td class="nowrap"><%= when(e.starts_at) %></td>
+          <td><a href="/staff/events/<%= e.id %>"><b><%= e.title %></b></a><div class="small muted"><%= E.KINDS[e.kind] %><%= e.venue ? ' · ' + e.venue : '' %></div></td>
+          <td><%= e.registered %><%= e.capacity ? ' / ' + e.capacity : '' %></td><td><%= e.pitch_slots ? `${e.selected} selected of ${e.submissions} · ${e.pitch_slots} slots` : '—' %></td>
+          <td><span class="badge <%= e.status === 'cancelled' ? 'red' : e.public ? 'green' : 'muted' %>"><%= e.status === 'scheduled' ? (e.public ? 'Published' : 'Draft') : e.status %></span></td></tr>
+      <% } %>
+      </tbody>
+    </table>
+  </div>
+  <% if (staff === 'admin') { %>
+    <form class="card" method="post" action="/staff/events">
+      <h3 style="margin-top:0">New event</h3>
+      <%- include('_eventform', { e: { kind: 'investment', duration_min: 120, venue: config.org.address, submissions_open: true, registration_open: true, public: true, pitch_slots: 5, title: 'VentureOS investment presentations — ' + lagosNow.toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }) }, P }) %>
+      <button class="btn" type="submit">Create</button>
+    </form>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

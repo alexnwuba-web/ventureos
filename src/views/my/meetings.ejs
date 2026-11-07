@@ -1,0 +1,49 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <%- include('../partials/portalnav') %>
+  <% if (notice === 'replied') { %><div class="notice ok">Thank you — ScaleGate has been told.</div><% } %>
+  <% if (error) { %><div class="notice err"><%= error %></div><% } %>
+  <% const now = new Date(); const up = meetings.filter((m) => new Date(m.starts_at) >= now && m.status !== 'cancelled' && m.status !== 'held'); const past = meetings.filter((m) => !up.includes(m)).reverse(); %>
+  <h2 style="margin-top:0">Upcoming</h2>
+  <% if (!up.length) { %><div class="card muted">No meetings scheduled. When ScaleGate invites you to a meeting it will appear here and you will get an email with a calendar invitation.</div><% } %>
+  <% for (const m of up) { %>
+    <div class="card announce">
+      <div class="row between">
+        <div><h3 style="margin:0"><%= m.title %></h3><% if (P.KINDS[m.kind] !== m.title) { %><div class="small muted"><%= P.KINDS[m.kind] %></div><% } %></div>
+        <span class="badge <%= m.status === 'accepted' ? 'green' : m.status === 'proposed' ? 'amber' : m.status === 'declined' ? 'red' : 'blue' %>"><%= P.STATUS[m.status] %></span>
+      </div>
+      <p class="when" style="font-family:Georgia,serif;font-size:19px;margin:12px 0 4px"><%= P.whenLagos(m.starts_at) %></p>
+      <table class="kv small">
+        <tr><td>Length</td><td><%= m.duration_min %> minutes</td></tr>
+        <tr><td>Where</td><td><%= P.MODES[m.mode] %><% if (m.mode === 'in_person') { %> — <%= m.location %><% } else if (m.video_link) { %> — <% if (/^https?:/.test(m.video_link)) { %><a href="<%= m.video_link %>" target="_blank" rel="noopener">join link</a><% } else { %><%= m.video_link %><% } %><% } else { %> — link to follow<% } %></td></tr>
+        <% if (m.with_staff) { %><tr><td>From ScaleGate</td><td><%= m.with_staff %></td></tr><% } %>
+        <% if (m.agenda) { %><tr><td>Agenda</td><td class="answer"><%= m.agenda %></td></tr><% } %>
+        <% if (m.founder_note) { %><tr><td>Your note</td><td class="answer"><%= m.founder_note %></td></tr><% } %>
+      </table>
+      <div class="row" style="margin-top:14px">
+        <% if (m.status !== 'accepted') { %><form method="post" action="/my/a/<%= app.ref %>/meetings/<%= m.id %>/reply"><input type="hidden" name="answer" value="accept"><button class="btn" type="submit">Accept</button></form><% } %>
+        <a class="btn ghost" href="/my/a/<%= app.ref %>/meetings/<%= m.id %>/invite.ics">Add to my calendar</a>
+      </div>
+      <details style="margin-top:12px">
+        <summary class="small" style="cursor:pointer">Can't make it? Ask for another time or decline</summary>
+        <form method="post" action="/my/a/<%= app.ref %>/meetings/<%= m.id %>/reply" style="margin-top:10px">
+          <textarea name="note" placeholder="Suggest two or three times that suit you (Lagos time), or say why you are declining"></textarea>
+          <div class="row" style="margin-top:8px"><button class="btn small" name="answer" value="reschedule" type="submit">Ask for another time</button>
+            <button class="btn small danger" name="answer" value="decline" type="submit" data-confirm="Decline this meeting?">Decline</button></div>
+        </form>
+      </details>
+    </div>
+  <% } %>
+
+  <% if (past.length) { %>
+    <h2>Past and cancelled</h2>
+    <% for (const m of past) { %>
+      <div class="card">
+        <div class="row between"><div><b><%= m.title %></b> <span class="small muted">· <%= P.whenLagos(m.starts_at) %></span></div><span class="badge <%= m.status === 'held' ? 'green' : 'muted' %>"><%= m.status === 'held' ? 'Held' : P.STATUS[m.status] %></span></div>
+        <% if (m.summary) { %><div class="answer small" style="margin-top:10px"><b>Summary from ScaleGate:</b><br><%= m.summary %></div><% } %>
+      </div>
+    <% } %>
+    <p class="small"><a href="/my/a/<%= app.ref %>/followups">See the follow-ups and documents agreed at meetings →</a></p>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

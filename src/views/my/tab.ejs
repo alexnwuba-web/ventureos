@@ -1,0 +1,8 @@
+<%- include('../partials/head') %>
+<div class="wrap narrow">
+  <p class="small"><a href="/my">← Your applications</a></p>
+  <h1>Innovator tab — <%= venture.name %></h1>
+  <p class="muted">Carrying costs of your residency, owed by the venture company — not by you personally. Repaid at 10–15% of net revenue once revenue passes the agreed threshold; forgiven if there is no qualifying revenue within 3 years of completion. You can pay it off early at any time.</p>
+  <%- include('../partials/ledger', { entries }) %>
+</div>
+<%- include('../partials/foot') %>
