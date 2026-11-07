@@ -10,7 +10,7 @@ const KIND_KEYS = Object.keys(Q.KINDS);
 const cleanKinds = (k) => [...new Set((Array.isArray(k) ? k : [k]).filter((x) => KIND_KEYS.includes(x)))];
 const err = (status, message) => Object.assign(new Error(message), { status });
 
-async function create(person, { kinds, ventureName }) {
+async function create(person, { kinds, ventureName, programme }) {
   const ks = cleanKinds(kinds);
   if (!ks.length) throw err(400, 'Choose at least one thing you are applying for.');
   const name = String(ventureName || '').trim().slice(0, 160);
@@ -21,6 +21,9 @@ async function create(person, { kinds, ventureName }) {
     const ref = `VOS-${String(new Date().getUTCFullYear()).slice(2)}-${String(n.n).padStart(4, '0')}`;
     const a = await q.one('INSERT INTO applications (ref, venture_id, applicant_id, kinds) VALUES ($1,$2,$3,$4) RETURNING *', [ref, v.id, person.id, ks]);
     await q.query(`INSERT INTO answers (application_id, key, value) VALUES ($1, 'venture_name', $2)`, [a.id, JSON.stringify(name)]);
+    if (ks.includes('programme') && Q.SG_PROGRAMMES.some((p) => p.value === programme)) {
+      await q.query(`INSERT INTO answers (application_id, key, value) VALUES ($1, 'sg_programme', $2)`, [a.id, JSON.stringify(programme)]);
+    }
     await audit(person.id, a.id, 'created', { kinds: ks }, q);
     return a;
   });

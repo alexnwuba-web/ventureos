@@ -64,14 +64,14 @@ r.get('/my', async (req, res) => {
   res.render('my/home', { title: 'Your applications', apps, tab, presentations, registrations, E: require('../domain/events'), P });
 });
 
-r.get('/my/new', (req, res) => res.render('my/new', { title: 'New application', error: null, kinds: Q.KINDS, chosen: [].concat(req.query.kind || []) }));
+r.get('/my/new', (req, res) => res.render('my/new', { title: 'New application', error: null, kinds: Q.KINDS, chosen: [].concat(req.query.kind || []), programme: req.query.programme || '', SG: Q.SG_PROGRAMMES }));
 r.post('/my/new', async (req, res) => {
   try {
-    const app = await A.create(req.person, { kinds: req.body.kinds, ventureName: req.body.venture_name });
+    const app = await A.create(req.person, { kinds: req.body.kinds, ventureName: req.body.venture_name, programme: req.body.programme });
     res.redirect(`/my/a/${app.ref}`);
   } catch (e) {
     if (!e.status || e.status >= 500) throw e;
-    res.status(e.status).render('my/new', { title: 'New application', error: e.message, kinds: Q.KINDS, chosen: [].concat(req.body.kinds || []) });
+    res.status(e.status).render('my/new', { title: 'New application', error: e.message, kinds: Q.KINDS, chosen: [].concat(req.body.kinds || []), programme: req.body.programme || '', SG: Q.SG_PROGRAMMES });
   }
 });
 

@@ -13,7 +13,7 @@ r.get('/', async (req, res) => {
   const cohorts = await db.many(`SELECT c.*, k.name AS campus_name, k.city AS campus_city FROM cohorts c LEFT JOIN campuses k ON k.id = c.campus_id
     WHERE c.public AND c.status IN ('planned','open','running') ORDER BY (c.status = 'open') DESC, c.starts_on NULLS LAST, c.created_at`);
   const E = require('../domain/events');
-  res.render('public/home', { title: 'VentureOS — Make. Grow. Create.', kinds: Q.KINDS, interests, campuses, cohorts, events: await E.upcoming(), E, P: require('../domain/portal') });
+  res.render('public/home', { title: 'VentureOS — Make. Grow. Create.', kinds: Q.KINDS, interests, campuses, cohorts, events: await E.upcoming(), E, P: require('../domain/portal'), SG: Q.SG_PROGRAMMES });
 });
 
 r.get('/signin', (req, res) => {
@@ -48,6 +48,42 @@ r.post('/signin/code', async (req, res) => {
     res.status(e.status).render('public/code', { title: 'Enter your code', email: auth.normEmail(req.body.email), next, error: e.message });
   }
 });
+
+// ── Organisations that want to fund or co-design programmes (ScaleGate's impact initiatives) ──
+const PARTNER_INTERESTS = {
+  venture_philanthropy: 'Sponsor young founders (Venture Philanthropy)',
+  founder_programme: 'A founder or venture-building programme',
+  challenge: 'An open innovation or challenge programme',
+  market_access: 'A market access programme (including into Europe)',
+  venture_studio: 'A venture studio around our capability or technology',
+  creative: 'Creative and cultural industries',
+  center: 'Sponsor a VentureOS Center track, residency or campus facility',
+  invest: 'Invest in or lend to VentureOS ventures',
+};
+const ORG_TYPES = ['Foundation', 'Development-finance institution', 'Government or agency', 'Company', 'Investor or bank', 'University or research body', 'Donor', 'Ecosystem partner', 'Other'];
+r.get('/partner', (req, res) => res.render('public/partner', { title: 'Partner with us', PARTNER_INTERESTS, ORG_TYPES, error: null, sent: req.query.sent === '1', b: {} }));
+r.post('/partner', async (req, res) => {
+  const b = req.body || {};
+  const t = (v, n) => String(v || '').trim().slice(0, n);
+  const email = t(b.email, 200).toLowerCase();
+  const interests = [].concat(b.interests || []).filter((x) => PARTNER_INTERESTS[x]);
+  const problem = !t(b.name, 120) || !t(b.organisation, 160) ? 'Please give your name and organisation.'
+    : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? 'Please give a valid email address.' : !interests.length ? 'Choose at least one area of interest.'
+      : b.consent !== 'on' ? 'Please agree that we may contact you about this enquiry.' : null;
+  if (problem || b.website) return res.status(400).render('public/partner', { title: 'Partner with us', PARTNER_INTERESTS, ORG_TYPES, error: problem || 'Please try again.', sent: false, b });
+  const e = await db.one(`INSERT INTO partner_enquiries (name, organisation, role, email, phone, country, org_type, interests, message, budget) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+    [t(b.name, 120), t(b.organisation, 160), t(b.role, 120) || null, email, t(b.phone, 40) || null, t(b.country, 80) || null, ORG_TYPES.includes(b.org_type) ? b.org_type : null,
+      interests, t(b.message, 4000) || null, t(b.budget, 120) || null]);
+  const mail = require('../lib/mail');
+  const config = require('../config');
+  await mail.send({ to: email, subject: 'Thank you — ScaleGate Africa', lines: [`Dear ${e.name},`, 'Thank you for your interest in working with ScaleGate Africa and VentureOS. A partner will be in touch within ten working days to arrange a call.'] });
+  for (const a of await db.many(`SELECT email FROM people WHERE staff_role = 'admin'`)) {
+    await mail.send({ to: a.email, subject: `Partner enquiry: ${e.organisation}`, lines: [`${e.name} (${e.role || '—'}), ${e.organisation} — ${e.org_type || ''}`, `Interested in: ${interests.map((x) => PARTNER_INTERESTS[x]).join('; ')}`, e.message || ''],
+      link: { label: 'Open partner enquiries', url: `${config.baseUrl}/staff/partners` } });
+  }
+  res.redirect('/partner?sent=1');
+});
+r.PARTNER_INTERESTS = PARTNER_INTERESTS;
 
 r.post('/signout', async (req, res) => { await auth.endSession(req, res); res.redirect('/'); });
 

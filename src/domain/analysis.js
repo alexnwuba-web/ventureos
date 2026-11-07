@@ -192,6 +192,17 @@ function analyse(app, answers, settings = {}) {
   }
   if (answers.litigation === 'yes') flag('amber', 'Legal', 'A legal dispute is open.');
 
+  // ── ScaleGate programmes ──
+  if (kinds.includes('programme')) {
+    if (answers.sg_programme === 'startup_visa') {
+      if (answers.non_eu === 'no') flag('red', 'Eligibility', 'An EU, EEA or Swiss citizen does not need the Dutch Startup Visa: another pathway (Gate or Scale) fits better.');
+      if (answers.relocate_nl === 'no') flag('red', 'Eligibility', 'The Startup Visa requires the founder to develop and run the company in the Netherlands.');
+      if (String(answers.innovation || '').trim().length < 80) flag('amber', 'Eligibility', 'The innovation is thinly described: RVO looks for something new to the Dutch market.');
+    }
+    if (answers.sg_programme === 'scale' && !['revenue', 'scaling'].includes(answers.stage)) flag('amber', 'Fit', 'Scale is for established companies with a proven offer; the stage given is earlier.');
+    if (answers.sg_programme === 'zero_to_gate' && ['revenue', 'scaling'].includes(answers.stage)) flag('info', 'Fit', 'Already has revenue: Gate to Scale may fit better than Zero to Gate.');
+  }
+
   // ── Residency ──
   if (kinds.includes('residency')) {
     if (answers.relocate === 'no') flag('red', 'Commitment', 'The lead founder will not relocate full time — the residency requires it.');

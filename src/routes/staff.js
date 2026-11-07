@@ -299,6 +299,18 @@ r.post('/staff/site/interests', requireStaff('admin'), async (req, res) => {
   res.redirect('/staff/site');
 });
 
+// ── Partner enquiries ──
+r.get('/staff/partners', requireStaff('admin', 'committee'), async (req, res) => {
+  const list = await db.many(`SELECT * FROM partner_enquiries ORDER BY (status IN ('new','contacted','in_discussion')) DESC, created_at DESC LIMIT 300`);
+  res.render('staff/partners', { title: 'Partner enquiries', list, PARTNER_INTERESTS: require('./public').PARTNER_INTERESTS });
+});
+r.post('/staff/partners/:id', requireStaff('admin'), async (req, res) => {
+  const status = ['new', 'contacted', 'in_discussion', 'agreed', 'closed'].includes(req.body.status) ? req.body.status : 'new';
+  await db.query('UPDATE partner_enquiries SET status = $2, staff_note = $3, updated_at = now() WHERE id = $1', [req.params.id, status, String(req.body.staff_note || '').slice(0, 2000) || null]);
+  await audit(req.person.id, null, 'partner.updated', { id: req.params.id, status });
+  res.redirect('/staff/partners');
+});
+
 // ── People ──
 r.get('/staff/people', requireStaff('admin'), async (req, res) => {
   const staff = await db.many(`SELECT p.*, (SELECT count(*) FROM assignments x WHERE x.reviewer_id = p.id)::int AS assigned FROM people p WHERE staff_role IS NOT NULL ORDER BY staff_role, name`);

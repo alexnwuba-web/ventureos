@@ -47,6 +47,24 @@ const FACILITIES = ['Maker lab (3D printers, laser cutter, CNC, electronics)', '
   'Cold-storage development yard', 'Pilot food-processing unit and food-testing lab', 'Packaging studio', 'Music studio',
   'Photo and video studio', 'Fashion atelier', 'Art studio', 'Writers\' room', 'Black-box theatre / event hall', 'Greenhouse / hydroponics'];
 
+/* ScaleGate's own programmes, in its own words (scalegate.africa). VentureOS is the way in. */
+const SG_PROGRAMMES = [
+  { value: 'zero_to_gate', label: 'Zero to Gate', short: 'I have an idea or very early project', group: 'Founders',
+    body: 'Turn an idea, concept or pre-MVP project into a venture that can be tested, explained and built: problem, customer and market; proposition and business model; validation plan; brand narrative and founder materials; product or MVP direction; milestones and roadmap.' },
+  { value: 'gate_to_scale', label: 'Gate to Scale', short: 'I run an existing startup', group: 'Founders',
+    body: 'Hands-on help in the part of the company that most needs it — strategy, product and technology, brand, go-to-market and partnerships, capital, grants and investment readiness, or pilot design. A tailored engagement, not a fixed curriculum.' },
+  { value: 'scale', label: 'Scale', short: 'My established company is ready to grow internationally, including into Europe', group: 'Founders',
+    body: 'For established companies with a proven offer, especially those built in emerging markets: market selection and entry, customers and partners, local operating and ecosystem access, international positioning, funding and institutional pathways — with ScaleGate\'s team in Europe during execution.' },
+  { value: 'startup_visa', label: 'Dutch Startup Visa', short: 'I want to build my company in the Netherlands', group: 'Europe',
+    body: 'For innovative non-EU founders who will build and run their company in the Netherlands. ScaleGate builds the company with you and prepares the application as part of that work. ScaleGate is not a visa or immigration agency; RVO advises and the IND decides.' },
+  { value: 'venture_philanthropy', label: 'Venture Philanthropy', short: 'I have potential but not the resources to start', group: 'Impact',
+    body: 'Free or fully sponsored venture building, mentorship and connections for young people who would not normally have access to entrepreneurial opportunities. Selection looks at potential and commitment, not money.' },
+  { value: 'creative', label: 'Creative and Cultural Industries', short: 'I am a creative or cultural practitioner', group: 'Impact',
+    body: 'For artists, filmmakers, designers, performers, craftspeople and heritage practitioners: the structures, business models and partnerships that let creative work survive, grow and provide a livelihood — without commercialising culture at any cost.' },
+  { value: 'scale_in_africa', label: 'Scale in Africa', short: 'My company wants to build or scale in an African market', group: 'Africa',
+    body: 'For founders and international companies entering or expanding in African markets: one defined market and a clear commercial objective — market focus, local validation, customers and partners, entry execution.' },
+];
+
 const SECTIONS = [
   // ───────────────────────────── Every application ─────────────────────────────
   {
@@ -172,6 +190,49 @@ const SECTIONS = [
           { value: 'yes', label: 'Yes, I would like to discuss a mandate' }, { value: 'maybe', label: 'Possibly' }, { value: 'no', label: 'No — introductions only' }] },
     ],
   },
+  // ───────────────────────────── ScaleGate programmes (VentureOS is the way in) ─────────────────────────────
+  {
+    key: 'programme', title: 'ScaleGate programme', for: ['programme'],
+    intro: 'VentureOS is the way into ScaleGate\'s programmes in Africa and Europe. Choose where you are today; the questions adjust.',
+    fields: [
+      { key: 'sg_programme', label: 'Where are you today?', type: 'select', required: true, options: SG_PROGRAMMES.map((p) => ({ value: p.value, label: `${p.label} — ${p.short}` })) },
+      { key: 'help_areas', label: 'Where do you need the most help?', type: 'multiselect', required: true, options: [
+        { value: 'strategy', label: 'Strategy and business model' }, { value: 'product', label: 'Product and technology delivery' },
+        { value: 'brand', label: 'Positioning, brand and communication' }, { value: 'gtm', label: 'Go-to-market, sales and partnerships' },
+        { value: 'capital', label: 'Capital, grants and investment readiness' }, { value: 'pilot', label: 'Pilot design and execution' },
+        { value: 'market_entry', label: 'Market selection and entry' }, { value: 'operations', label: 'Local operating and ecosystem access' }] },
+      // Scale: growing internationally, including into Europe
+      { key: 'target_markets', label: 'Which markets do you want to enter?', type: 'multiselect', showIf: { key: 'sg_programme', in: ['scale', 'startup_visa'] }, required: true, options: [
+        { value: 'nl', label: 'The Netherlands' }, { value: 'eu', label: 'Elsewhere in the European Union' }, { value: 'uk', label: 'United Kingdom' },
+        { value: 'west_africa', label: 'Other West African markets' }, { value: 'east_africa', label: 'East Africa' }, { value: 'other', label: 'Elsewhere' }] },
+      { key: 'intl_today', label: 'What do you sell outside your home country today — customers, distributors, exports — and what have you learned?', type: 'textarea',
+        showIf: { key: 'sg_programme', in: ['scale'] }, required: true },
+      { key: 'intl_objective', label: 'Your commercial objective for the new market in the first 12–18 months (customers, revenue, partners)', type: 'textarea',
+        showIf: { key: 'sg_programme', in: ['scale', 'scale_in_africa'] }, required: true },
+      { key: 'europe_readiness', label: 'What is ready for Europe already — certifications, product standards, pricing in euros, materials, a team member who can travel?', type: 'textarea',
+        showIf: { key: 'sg_programme', in: ['scale'] } },
+      // Dutch Startup Visa
+      { key: 'non_eu', label: 'Are you a citizen of a country outside the EU, EEA and Switzerland?', type: 'yesno', showIf: { key: 'sg_programme', in: ['startup_visa'] }, required: true },
+      { key: 'relocate_nl', label: 'Will you move to the Netherlands to develop and run the company there yourself?', type: 'yesno', showIf: { key: 'sg_programme', in: ['startup_visa'] }, required: true },
+      { key: 'innovation', label: 'What is innovative about your offer, technology or way of working — new to the Dutch market?', type: 'textarea', showIf: { key: 'sg_programme', in: ['startup_visa'] }, required: true },
+      { key: 'why_nl', label: 'Why the Netherlands, specifically?', type: 'textarea', showIf: { key: 'sg_programme', in: ['startup_visa'] }, required: true },
+      { key: 'visa_ack', label: 'I understand that ScaleGate is not a visa or immigration agency: it builds the company with me and helps prepare the application, RVO advises and the IND decides, and neither positive advice nor a residence permit is guaranteed. Fees are agreed in the engagement.', type: 'check',
+        showIf: { key: 'sg_programme', in: ['startup_visa'] }, required: true },
+      // Scale in Africa: companies entering an African market
+      { key: 'home_market', label: 'Where is your company based and trading today?', type: 'text', showIf: { key: 'sg_programme', in: ['scale_in_africa'] }, required: true },
+      { key: 'africa_market', label: 'Which African market do you want to enter first?', type: 'text', showIf: { key: 'sg_programme', in: ['scale_in_africa'] }, required: true },
+      // Venture Philanthropy
+      { key: 'vp_situation', label: 'What is stopping you from starting — money, equipment, connections, training? Tell us about your situation.', type: 'textarea',
+        showIf: { key: 'sg_programme', in: ['venture_philanthropy'] }, required: true },
+      { key: 'vp_age', label: 'Your age group', type: 'select', showIf: { key: 'sg_programme', in: ['venture_philanthropy'] }, required: true, options: ['Under 18', '18–24', '25–30', '31–35', 'Over 35'] },
+      // Creative and Cultural Industries
+      { key: 'creative_field', label: 'Your creative field', type: 'select', showIf: { key: 'sg_programme', in: ['creative'] }, required: true,
+        options: ['Theatre', 'Film', 'Music', 'Design', 'Fashion', 'Performance', 'Crafts', 'Heritage', 'Writing and publishing', 'Visual art', 'Other'] },
+      { key: 'creative_work', label: 'Link to your work (portfolio, recordings, films, collections)', type: 'url', showIf: { key: 'sg_programme', in: ['creative'] }, required: true },
+      { key: 'creative_livelihood', label: 'How does the work earn money today, and how should it?', type: 'textarea', showIf: { key: 'sg_programme', in: ['creative'] }, required: true },
+    ],
+  },
+
   // ───────────────────────────── Residency (VentureOS Center) ─────────────────────────────
   {
     key: 'residency', title: 'VentureOS Center residency', for: ['residency'],
@@ -473,6 +534,7 @@ const SECTIONS = [
 ];
 
 const KINDS = {
+  programme: { label: 'ScaleGate programme', short: 'ScaleGate', blurb: 'Zero to Gate, Gate to Scale, Scale (including growth in Europe), the Dutch Startup Visa route, Venture Philanthropy, Creative and Cultural Industries, or Scale in Africa — ScaleGate\'s programmes, entered through VentureOS.' },
   residency: { label: 'VentureOS Center residency', short: 'Residency', blurb: 'A 6–12 month live-work-build place in Lagos for Make, Grow and Create ventures, with labs, studios, housing and the route to Europe.' },
   equity: { label: 'Equity investment', short: 'Equity', blurb: 'Investment for shares, a SAFE or a convertible note, structured and introduced by ScaleGate to investors in its network.' },
   debt: { label: 'Debt finance', short: 'Debt', blurb: 'A loan, equipment leasing, asset or trade finance (LPO, invoice, import), arranged with banks, leasing companies and development-finance institutions.' },
@@ -547,4 +609,4 @@ const option = (f, v) => {
   return o ? (typeof o === 'string' ? o : o.label) : v;
 };
 
-module.exports = { SECTIONS, KINDS, PARTS, CURRENCIES, TRACKS, sectionsFor, field, visible, isRequired, filled, missing, option };
+module.exports = { SG_PROGRAMMES, SECTIONS, KINDS, PARTS, CURRENCIES, TRACKS, sectionsFor, field, visible, isRequired, filled, missing, option };

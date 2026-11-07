@@ -9,7 +9,8 @@
       <input id="vn" type="text" name="venture_name" required maxlength="160"></div>
     <div class="field kindpick"><label class="lbl" style="border:0;padding:0;background:none;cursor:default">I am applying for<span class="req">*</span></label>
       <% for (const [k, v] of Object.entries(kinds)) { %>
-        <label><input type="checkbox" name="kinds[]" value="<%= k %>" <%= chosen.includes(k) ? 'checked' : '' %>><b><%= v.label %></b><div class="muted small" style="margin:4px 0 0 24px"><%= v.blurb %></div></label>
+        <label><input type="checkbox" name="kinds[]" value="<%= k %>" <%= chosen.includes(k) ? 'checked' : '' %>><b><%= v.label %></b><div class="muted small" style="margin:4px 0 0 24px"><%= v.blurb %></div>
+          <% if (k === 'programme') { %><div style="margin:8px 0 0 24px"><select name="programme" style="max-width:520px"><option value="">Choose the programme (you can also choose later)</option><% for (const p of SG) { %><option value="<%= p.value %>" <%= programme === p.value ? 'selected' : '' %>><%= p.label %> — <%= p.short %></option><% } %></select></div><% } %></label>
       <% } %>
     </div>
     <button class="btn" type="submit">Start</button>

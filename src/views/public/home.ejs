@@ -9,8 +9,37 @@
   <div class="wrap">
     <p class="eyebrow" style="color:#c8a14a">ScaleGate Africa · Lagos · The Hague</p>
     <h1>Make. Grow. <em>Create.</em></h1>
-    <p>Africa's real problems and Africa's real culture, built into businesses the world will buy. VentureOS is ScaleGate Africa's venture programme: a live-work-build campus in Lagos, cohorts of founders from across Africa, and investment and a route into Europe through ScaleGate in The Hague.</p>
-    <p style="margin-top:24px"><a class="btn gold" href="<%= applyUrl %>">Apply</a> &nbsp; <a class="btn ghost" href="#events">Presentations and meetups</a> &nbsp; <a class="btn ghost" href="#cohorts">Cohorts and campuses</a></p>
+    <p>Africa's real problems and Africa's real culture, built into businesses the world will buy. VentureOS is the way into ScaleGate: one application for ScaleGate's programmes in Africa and Europe, the VentureOS Center residency in Lagos, and investment — with a route to grow in Europe through ScaleGate's team in the Netherlands.</p>
+    <p style="margin-top:24px"><a class="btn gold" href="<%= applyUrl %>">Apply</a> &nbsp; <a class="btn ghost" href="#scalegate">ScaleGate programmes</a> &nbsp; <a class="btn ghost" href="#events">Presentations and meetups</a></p>
+  </div>
+</section>
+
+<section class="section" id="scalegate">
+  <div class="wrap">
+    <p class="eyebrow">From Africa into Europe, and from Europe into Africa</p>
+    <h2 style="margin-top:0">ScaleGate programmes — apply through VentureOS</h2>
+    <p class="lead">ScaleGate backs companies moving from Africa into Europe and from Europe into Africa, with an operating team in the Netherlands and its African hub in Lagos. VentureOS is how you apply: choose where you are today, and we will meet you at that stage.</p>
+    <% for (const group of [['Founders', 'Build and scale'], ['Europe', 'Build in Europe'], ['Impact', 'Impact initiatives'], ['Africa', 'Into Africa']]) { const list = SG.filter((p) => p.group === group[0]); %>
+      <h3><%= group[1] %></h3>
+      <div class="grid <%= list.length > 2 ? 'g3' : list.length === 2 ? 'g2' : '' %>">
+        <% for (const p of list) { %>
+          <div class="card interest">
+            <span class="badge scalegate"><%= p.short %></span>
+            <h3><%= p.label %></h3>
+            <p class="muted small"><%= p.body %></p>
+            <a class="btn small" href="<%= person ? '/my/new?kind=programme&programme=' + p.value : '/signin?next=' + encodeURIComponent('/my/new?kind=programme&programme=' + p.value) %>">Apply through VentureOS</a>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+    <div class="grid g2" style="margin-top:18px">
+      <div class="card"><h3 style="margin-top:0">How a ScaleGate engagement works</h3>
+        <ol class="small" style="margin:0;padding-left:18px"><li><b>Apply</b> through VentureOS: where the company is today and what needs to change.</li><li><b>Review:</b> stage, need and fit — with a written answer within ten working days.</li><li><b>Scope:</b> if there is a fit, we agree the pathway, priorities, working model, outcomes and commercial terms in writing.</li><li><b>Begin:</b> ScaleGate assembles the team, in Africa and in Europe, and starts the agreed work.</li></ol></div>
+      <div class="card"><h3 style="margin-top:0">Funding or partnering a programme?</h3>
+        <p class="small muted">Foundations, institutions, companies and donors design founder programmes, challenges, market access programmes and venture studios with ScaleGate — and sponsor young founders through Venture Philanthropy.</p>
+        <a class="btn small ghost" href="/partner">Partner with us</a></div>
+    </div>
+    <p class="small muted" style="margin-top:12px">Applying does not create a service agreement or guarantee acceptance; work starts only once scope and terms are agreed in writing. ScaleGate is not a visa or immigration agency, and does not guarantee positive RVO advice or an IND residence permit. VentureOS is operated by ScaleGate Africa, part of ScaleGate.</p>
   </div>
 </section>
 
@@ -52,11 +81,11 @@
   <div class="wrap">
     <p class="eyebrow">The programme</p>
     <h2 style="margin-top:0">About VentureOS</h2>
-    <p class="lead">VentureOS began as a gathering of tech minds in Lagos. It is now ScaleGate Africa's venture programme, and the name of the campus where its cohorts live and build. It brings founders, investors, industry and government together around ventures that solve real problems and can sell beyond Africa.</p>
+    <p class="lead">VentureOS began as a gathering of tech minds in Lagos. It is now ScaleGate Africa's front door — where founders apply to ScaleGate's programmes — and the name of the campus where its cohorts live and build. It brings founders, investors, industry and government together around ventures that solve real problems and can sell beyond Africa.</p>
     <div class="grid g3" style="margin-top:20px">
       <div class="card"><h3>The VentureOS Center</h3><p class="muted" style="margin:0">A 6–12 month residency in Lagos for 12–20 innovators per cohort: housing, labs, studios and mentors, moving from problem immersion to prototype, pilot and a company.</p></div>
       <div class="card"><h3>VentureOS meetings</h3><p class="muted" style="margin:0">Regular gatherings in Lagos where founders meet ScaleGate, investors and partners — the front door to everything else in the programme.</p></div>
-      <div class="card"><h3>Investment and Europe</h3><p class="muted" style="margin:0">Equity, debt and grant funding arranged through ScaleGate, and a soft landing in Europe through ScaleGate's headquarters in The Hague for ventures proven in Lagos.</p></div>
+      <div class="card"><h3>ScaleGate, investment and Europe</h3><p class="muted" style="margin:0">Applications to ScaleGate's programmes, equity, debt and grant funding arranged through ScaleGate's network, and a route to grow in Europe through ScaleGate's team in the Netherlands for ventures proven in Lagos.</p></div>
     </div>
   </div>
 </section>

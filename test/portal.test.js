@@ -155,3 +155,37 @@ test('integrity veto, the ten-working-day answer date, and the triage traction r
   await admin.post(`/staff/a/${ref}/veto`).type('form').send({ on: 'no' }).expect(302);
   assert.match((await admin.get('/staff').expect(200)).text, /Cold Hub/);
 });
+
+test('VentureOS as the way into ScaleGate: programmes, Startup Visa checks, partner enquiries', async () => {
+  let r = await request(app).get('/').expect(200);
+  assert.match(r.text, /ScaleGate programmes — apply through VentureOS/);
+  for (const t of ['Zero to Gate', 'Gate to Scale', 'Dutch Startup Visa', 'Venture Philanthropy', 'Creative and Cultural Industries', 'Scale in Africa']) assert.match(r.text, new RegExp(t));
+  assert.match(r.text, /not a visa or immigration agency/);
+  assert.match(r.text, /African companies ready to grow in Europe/);
+
+  // A founder applies to the Startup Visa route from the front-page link
+  const f = await signIn(app, 'amara@example.com', 'Amara');
+  r = await f.get('/my/new?kind=programme&programme=startup_visa').expect(200);
+  assert.match(r.text, /value="startup_visa" selected/);
+  r = await f.post('/my/new').type('form').send({ venture_name: 'Kola Labs', 'kinds[]': 'programme', programme: 'startup_visa' }).expect(302);
+  const pref = /(VOS-\d\d-\d{4})/.exec(r.headers.location)[1];
+  r = await f.get(`/my/a/${pref}/s/programme`).expect(200);
+  assert.match(r.text, /option value="startup_visa" selected/);
+  assert.match(r.text, /Why the Netherlands, specifically/);
+  await f.post(`/my/a/${pref}/s/programme`).type('form').send({ 'a[sg_programme]': 'startup_visa', 'a[non_eu]': 'no', 'a[relocate_nl]': 'no', 'a[innovation]': 'New' }).expect(302);
+  await db.query(`UPDATE applications SET status = 'submitted', submitted_at = now() WHERE ref = $1`, [pref]);
+  r = await admin.get(`/staff/a/${pref}`).expect(200);
+  assert.match(r.text, /does not need the Dutch Startup Visa/);
+  assert.match(r.text, /run the company in the Netherlands/);
+
+  // Organisations ask to partner
+  r = await request(app).get('/partner').expect(200);
+  assert.match(r.text, /Venture studios/);
+  await request(app).post('/partner').type('form').send({ name: 'Ife', organisation: 'Lagos Foundation', email: 'ife@found.org' }).expect(400);
+  await request(app).post('/partner').type('form').send({ name: 'Ife', organisation: 'Lagos Foundation', email: 'ife@found.org', org_type: 'Foundation',
+    'interests[]': ['venture_philanthropy', 'market_access'], message: 'Sponsor 20 young founders', consent: 'on' }).expect(302);
+  assert.ok(mail.outbox.some((m) => m.to === 'admin@scalegate.test' && /Partner enquiry: Lagos Foundation/.test(m.subject)));
+  r = await admin.get('/staff/partners').expect(200);
+  assert.match(r.text, /Sponsor young founders/);
+  await f.get('/staff/partners').expect(403);
+});

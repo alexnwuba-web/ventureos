@@ -86,6 +86,6 @@ function summarise(reviews) {
 }
 
 /** Which rubrics apply: triage always; then the residency rubric, and after the invitation the rubric for each request. */
-const rubricsFor = (app) => ['triage', ...app.kinds.filter((k) => k === 'residency' || app.stage === 2)];
+const rubricsFor = (app) => ['triage', ...app.kinds.filter((k) => RUBRICS[k] && (k === 'residency' || app.stage === 2))];
 
 module.exports = { RUBRICS, total, summarise, rubricsFor };

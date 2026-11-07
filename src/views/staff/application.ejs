@@ -50,6 +50,15 @@
             <div class="metric"><span>Amber flags</span><b style="color:var(--amber)"><%= analysis.counts.amber %></b></div>
             <div class="metric"><span>Revenue last year</span><b><%= money(m.revenue_last) %></b></div>
           </div>
+          <% if (app.kinds.includes('programme')) { const sp = Q.SG_PROGRAMMES.find((p) => p.value === answers.sg_programme); %>
+            <h3>ScaleGate programme</h3>
+            <table class="kv">
+              <tr><td>Programme</td><td><b><%= sp ? sp.label : 'Not chosen yet' %></b><%= sp ? ' — ' + sp.short : '' %></td></tr>
+              <tr><td>Help needed</td><td><%= answerText(Q.field('help_areas'), answers.help_areas) || '—' %></td></tr>
+              <% if (answers.target_markets) { %><tr><td>Target markets</td><td><%= answerText(Q.field('target_markets'), answers.target_markets) %></td></tr><% } %>
+              <tr><td>Founder's suggested pathway</td><td><%= answerText(Q.field('pathway'), answers.pathway) || '—' %></td></tr>
+            </table>
+          <% } %>
           <% if (app.kinds.includes('equity')) { %>
             <h3>Equity</h3>
             <table class="kv">
