@@ -16,6 +16,7 @@ const S = require('../domain/scoring');
 const { analyse } = require('../domain/analysis');
 const { audit } = require('../lib/audit');
 const mail = require('../lib/mail');
+const P = require('../domain/portal');
 
 const r = express.Router();
 r.use('/staff', requireStaff());
@@ -84,8 +85,10 @@ r.get('/staff/a/:ref', async (req, res) => {
   const reviewersAvailable = isAdmin(req) ? await db.many(`SELECT id, name, email, staff_role FROM people WHERE staff_role IS NOT NULL ORDER BY name`) : [];
   const cohorts = isAdmin(req) ? await db.many('SELECT * FROM cohorts ORDER BY created_at DESC') : [];
   const canSeeAnswers = req.staff !== 'reviewer' || (app.assignment && app.assignment.conflict === 'none');
+  const meetings = canSeeAnswers ? await P.meetingsOf(app.id) : [];
+  const followups = canSeeAnswers ? await P.followupsOf(app.id) : { actions: [], requests: [] };
   res.render('staff/application', { title: `${app.venture_name} · ${app.ref}`, app, answers: canSeeAnswers ? answers : {}, canSeeAnswers, docs: canSeeAnswers ? docs : [],
-    ready, analysis, assignments, reviews, mine, othersHidden, summaries, rubrics, messages, history, reviewersAvailable, cohorts,
+    ready, analysis, assignments, reviews, meetings, followups, P, canMeet: ['admin', 'committee'].includes(req.staff), mine, othersHidden, summaries, rubrics, messages, history, reviewersAvailable, cohorts,
     sections: Q.sectionsFor(app.kinds, app.stage), docList: D.docsFor(app.kinds, answers, app.stage), PARTS: Q.PARTS, RUBRICS: S.RUBRICS,
     // A practical challenge is for residencies; due diligence is for funding requests.
     NEXT: (W.NEXT[app.status] || []).filter((t) => (t !== 'challenge' || app.kinds.includes('residency')) && (t !== 'due_diligence' || app.kinds.some((k) => k !== 'residency'))), Q, isAdmin: isAdmin(req), notice: req.query.n || null });
@@ -197,6 +200,93 @@ r.post('/staff/a/:ref/cohort', requireStaff('admin'), async (req, res) => {
   res.redirect(`/staff/a/${app.ref}`);
 });
 
+// ── Meetings, follow-ups and document requests ──
+const canMeet = requireStaff('admin', 'committee');
+r.post('/staff/a/:ref/meetings', canMeet, async (req, res) => {
+  const app = await visible(req);
+  await P.invite(app, req.person, req.body);
+  res.redirect(`/staff/a/${app.ref}?n=invited#meetings`);
+});
+r.post('/staff/a/:ref/meetings/:id', canMeet, async (req, res) => {
+  const app = await visible(req);
+  await P.update(app, req.person, req.params.id, req.body);
+  res.redirect(`/staff/a/${app.ref}#meetings`);
+});
+r.get('/staff/a/:ref/meetings/:id/invite.ics', async (req, res) => {
+  const app = await visible(req);
+  const m = await P.meeting(app, req.params.id);
+  res.set('Content-Type', 'text/calendar; charset=utf-8').set('Content-Disposition', 'attachment; filename="ventureos-meeting.ics"').send(P.ics(m, app));
+});
+r.post('/staff/a/:ref/actions', canMeet, async (req, res) => {
+  const app = await visible(req);
+  await P.addAction(app, req.person, req.body);
+  res.redirect(`/staff/a/${app.ref}#followups`);
+});
+r.post('/staff/a/:ref/actions/:id', canMeet, async (req, res) => {
+  const app = await visible(req);
+  await P.setActionDone(app, req.person, req.params.id, req.body.done === 'yes');
+  res.redirect(`/staff/a/${app.ref}#followups`);
+});
+r.post('/staff/a/:ref/requests', canMeet, async (req, res) => {
+  const app = await visible(req);
+  await P.requestDocument(app, req.person, req.body);
+  res.redirect(`/staff/a/${app.ref}#followups`);
+});
+r.post('/staff/a/:ref/requests/:id', canMeet, async (req, res) => {
+  const app = await visible(req);
+  await P.setRequestStatus(app, req.person, req.params.id, req.body.status);
+  res.redirect(`/staff/a/${app.ref}#followups`);
+});
+
+r.get('/staff/meetings', requireStaff('admin', 'committee'), async (req, res) => {
+  const meetings = await db.many(`SELECT m.*, a.ref, v.name AS venture_name, p.name AS applicant_name FROM meetings m JOIN applications a ON a.id = m.application_id
+    JOIN ventures v ON v.id = a.venture_id JOIN people p ON p.id = a.applicant_id
+    WHERE m.starts_at > now() - interval '30 days' ORDER BY m.starts_at`);
+  const openActions = await db.many(`SELECT x.*, a.ref, v.name AS venture_name FROM actions x JOIN applications a ON a.id = x.application_id JOIN ventures v ON v.id = a.venture_id
+    WHERE x.done_at IS NULL ORDER BY x.due_on NULLS LAST, x.created_at LIMIT 200`);
+  const openRequests = await db.many(`SELECT r.*, a.ref, v.name AS venture_name FROM document_requests r JOIN applications a ON a.id = r.application_id JOIN ventures v ON v.id = a.venture_id
+    WHERE r.status IN ('open','received') ORDER BY r.status DESC, r.due_on NULLS LAST LIMIT 200`);
+  res.render('staff/meetings', { title: 'Meetings and follow-ups', meetings, openActions, openRequests, P });
+});
+
+// ── The front page: projects that interest us ──
+r.get('/staff/site', requireStaff('admin'), async (req, res) => {
+  res.render('staff/site', { title: 'Front page', interests: await db.many('SELECT * FROM interests ORDER BY sort, title'),
+    campuses: await db.many('SELECT * FROM campuses ORDER BY sort, name') });
+});
+r.post('/staff/site/campuses', requireStaff('admin'), async (req, res) => {
+  const t = (v, n) => String(v || '').trim().slice(0, n);
+  const status = ['design', 'renovation', 'open', 'planned'].includes(req.body.status) ? req.body.status : 'design';
+  const f = [t(req.body.name, 120), t(req.body.city, 80) || null, t(req.body.country, 80) || null, status, t(req.body.summary, 2000), t(req.body.spaces, 4000) || null,
+    t(req.body.capacity, 300) || null, t(req.body.opens, 120) || null, Number(req.body.sort) || 100];
+  if (req.body.delete === 'yes' && req.body.id) {
+    await db.query('UPDATE cohorts SET campus_id = NULL WHERE campus_id = $1', [req.body.id]);
+    await db.query('DELETE FROM campuses WHERE id = $1', [req.body.id]);
+  } else {
+    if (!f[0]) throw err(400, 'Give the campus a name.');
+    if (req.body.id) await db.query(`UPDATE campuses SET name = $2, city = $3, country = $4, status = $5, summary = $6, spaces = $7, capacity = $8, opens = $9, sort = $10,
+      visible = $11, updated_at = now() WHERE id = $1`, [req.body.id, ...f, req.body.visible === 'yes']);
+    else await db.query('INSERT INTO campuses (name, city, country, status, summary, spaces, capacity, opens, sort) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)', f);
+  }
+  await audit(req.person.id, null, 'site.campuses', { name: f[0] });
+  res.redirect('/staff/site#campuses');
+});
+r.post('/staff/site/interests', requireStaff('admin'), async (req, res) => {
+  const t = (v, n) => String(v || '').trim().slice(0, n);
+  const pillar = ['make', 'grow', 'create', 'scalegate'].includes(req.body.pillar) ? req.body.pillar : null;
+  if (req.body.delete === 'yes' && req.body.id) {
+    await db.query('DELETE FROM interests WHERE id = $1', [req.body.id]);
+  } else if (req.body.id) {
+    await db.query('UPDATE interests SET title = $2, body = $3, pillar = $4, support = $5, sort = $6, visible = $7, updated_at = now() WHERE id = $1',
+      [req.body.id, t(req.body.title, 120) || 'Untitled', t(req.body.body, 600), pillar, t(req.body.support, 120) || null, Number(req.body.sort) || 100, req.body.visible === 'yes']);
+  } else {
+    if (!t(req.body.title, 120)) throw err(400, 'Give the project area a title.');
+    await db.query('INSERT INTO interests (title, body, pillar, support, sort) VALUES ($1,$2,$3,$4,$5)', [t(req.body.title, 120), t(req.body.body, 600), pillar, t(req.body.support, 120) || null, Number(req.body.sort) || 100]);
+  }
+  await audit(req.person.id, null, 'site.interests', { title: req.body.title });
+  res.redirect('/staff/site');
+});
+
 // ── People ──
 r.get('/staff/people', requireStaff('admin'), async (req, res) => {
   const staff = await db.many(`SELECT p.*, (SELECT count(*) FROM assignments x WHERE x.reviewer_id = p.id)::int AS assigned FROM people p WHERE staff_role IS NOT NULL ORDER BY staff_role, name`);
@@ -222,19 +312,31 @@ r.post('/staff/people/:id/role', requireStaff('admin'), async (req, res) => {
   res.redirect('/staff/people');
 });
 
-// ── Cohorts ──
+// ── Cohorts (announced on the front page when public) ──
 r.get('/staff/cohorts', requireStaff('admin', 'committee'), async (req, res) => {
-  const cohorts = await db.many(`SELECT c.*, (SELECT count(*) FROM applications a WHERE a.cohort_id = c.id)::int AS apps,
-    (SELECT count(*) FROM applications a WHERE a.cohort_id = c.id AND a.status = 'accepted')::int AS accepted FROM cohorts c ORDER BY c.created_at DESC`);
-  res.render('staff/cohorts', { title: 'Cohorts', cohorts });
+  const cohorts = await db.many(`SELECT c.*, k.name AS campus_name, (SELECT count(*) FROM applications a WHERE a.cohort_id = c.id)::int AS apps,
+    (SELECT count(*) FROM applications a WHERE a.cohort_id = c.id AND a.status = 'accepted')::int AS accepted FROM cohorts c LEFT JOIN campuses k ON k.id = c.campus_id ORDER BY c.created_at DESC`);
+  res.render('staff/cohorts', { title: 'Cohorts', cohorts, campuses: await db.many('SELECT id, name FROM campuses ORDER BY sort, name') });
 });
-r.post('/staff/cohorts', requireStaff('admin'), async (req, res) => {
-  const name = String(req.body.name || '').trim().slice(0, 80);
-  if (!name) throw err(400, 'Give the cohort a name.');
+function cohortFields(b) {
   const d = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v : null);
-  await db.query('INSERT INTO cohorts (name, opens_on, closes_on, starts_on, size_target, status) VALUES ($1,$2,$3,$4,$5,$6)',
-    [name, d(req.body.opens_on), d(req.body.closes_on), d(req.body.starts_on), Number(req.body.size_target) || null, ['planned', 'open', 'closed', 'running', 'completed'].includes(req.body.status) ? req.body.status : 'planned']);
-  await audit(req.person.id, null, 'cohort.created', { name });
+  const name = String(b.name || '').trim().slice(0, 80);
+  if (!name) throw err(400, 'Give the cohort a name.');
+  return [name, d(b.opens_on), d(b.closes_on), d(b.starts_on), Number(b.size_target) || null,
+    ['planned', 'open', 'closed', 'running', 'completed'].includes(b.status) ? b.status : 'planned',
+    b.campus_id || null, String(b.timing || '').trim().slice(0, 60) || null, String(b.announcement || '').trim().slice(0, 1500) || null, b.public === 'yes'];
+}
+r.post('/staff/cohorts', requireStaff('admin'), async (req, res) => {
+  const f = cohortFields(req.body);
+  await db.query('INSERT INTO cohorts (name, opens_on, closes_on, starts_on, size_target, status, campus_id, timing, announcement, public) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)', f);
+  await audit(req.person.id, null, 'cohort.created', { name: f[0] });
+  res.redirect('/staff/cohorts');
+});
+r.post('/staff/cohorts/:id', requireStaff('admin'), async (req, res) => {
+  const f = cohortFields(req.body);
+  await db.query(`UPDATE cohorts SET name = $2, opens_on = $3, closes_on = $4, starts_on = $5, size_target = $6, status = $7, campus_id = $8, timing = $9,
+    announcement = $10, public = $11 WHERE id = $1`, [req.params.id, ...f]);
+  await audit(req.person.id, null, 'cohort.updated', { name: f[0] });
   res.redirect('/staff/cohorts');
 });
 

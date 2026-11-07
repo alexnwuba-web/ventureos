@@ -1,0 +1,47 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <%- include('../partials/portalnav') %>
+  <% if (error) { %><div class="notice err"><%= error %></div><% } %>
+  <h2 style="margin-top:0">Documents requested</h2>
+  <% if (!requests.length) { %><div class="card muted">No documents requested yet. When ScaleGate asks for a document — after a meeting or during due diligence — it appears here and you upload it here.</div><% } %>
+  <% for (const r of requests) { %>
+    <div class="card">
+      <div class="row between">
+        <div><b><%= r.title %></b><% if (r.meeting_title) { %> <span class="small muted">· agreed at <%= r.meeting_title %></span><% } %></div>
+        <span class="badge <%= r.status === 'open' ? 'amber' : r.status === 'accepted' ? 'green' : r.status === 'received' ? 'blue' : 'muted' %>"><%= { open: 'Needed', received: 'Received — being checked', accepted: 'Accepted', cancelled: 'No longer needed' }[r.status] %></span>
+      </div>
+      <% if (r.description) { %><p class="small" style="margin:8px 0 0"><%= r.description %></p><% } %>
+      <% if (r.due_on) { %><p class="small muted" style="margin:6px 0 0">Due by <%= date(r.due_on) %></p><% } %>
+      <% for (const f of r.files) { %><div class="small" style="margin-top:6px">📎 <a href="/files/<%= f.id %>" target="_blank"><%= f.filename %></a> <span class="muted"><%= date(f.created_at) %></span></div><% } %>
+      <% if (['open', 'received'].includes(r.status)) { %>
+        <form method="post" action="/my/a/<%= app.ref %>/requests/<%= r.id %>/upload" enctype="multipart/form-data" class="row" style="margin-top:10px">
+          <input type="file" name="file" required style="max-width:320px"><button class="btn small" type="submit"><%= r.files.length ? 'Upload another file' : 'Upload' %></button>
+        </form>
+      <% } %>
+    </div>
+  <% } %>
+
+  <h2>Next steps</h2>
+  <% const mine = actions.filter((a) => a.owner === 'founder'); const ours = actions.filter((a) => a.owner === 'scalegate'); %>
+  <div class="grid g2">
+    <div class="card">
+      <h3 style="margin-top:0">For you</h3>
+      <% if (!mine.length) { %><p class="muted small">Nothing yet.</p><% } %>
+      <% for (const a of mine) { %>
+        <form method="post" action="/my/a/<%= app.ref %>/actions/<%= a.id %>" class="choice" style="border-bottom:1px solid #f0f0ee">
+          <input type="hidden" name="done" value="<%= a.done_at ? 'no' : 'yes' %>">
+          <input type="checkbox" <%= a.done_at ? 'checked' : '' %> onchange="this.form.submit()" title="Mark as done">
+          <span style="<%= a.done_at ? 'text-decoration:line-through;color:var(--muted)' : '' %>"><%= a.body %><span class="small muted"><%= a.due_on ? ' · due ' + date(a.due_on) : '' %><%= a.meeting_title ? ' · from ' + a.meeting_title : '' %></span></span>
+        </form>
+      <% } %>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">For ScaleGate</h3>
+      <% if (!ours.length) { %><p class="muted small">Nothing yet.</p><% } %>
+      <% for (const a of ours) { %>
+        <div class="choice" style="border-bottom:1px solid #f0f0ee"><span><%= a.done_at ? '✓' : '○' %></span><span style="<%= a.done_at ? 'color:var(--muted)' : '' %>"><%= a.body %><span class="small muted"><%= a.due_on ? ' · due ' + date(a.due_on) : '' %></span></span></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

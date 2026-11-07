@@ -26,12 +26,13 @@
     </div>
     <button class="btn ghost small noprint" onclick="window.print()">Print</button>
   </div>
+  <% if (notice === 'invited') { %><div class="notice ok" style="margin-top:14px">Meeting invitation sent with a calendar invitation.</div><% } %>
   <% if (notice === 'moved') { %><div class="notice ok" style="margin-top:14px">Stage changed and the founder has been emailed.</div><% } %>
   <% if (notice === 'review-sent') { %><div class="notice ok" style="margin-top:14px">Your review has been sent.</div><% } %>
   <% if (notice === 'review-saved') { %><div class="notice ok" style="margin-top:14px">Review saved. Send it when every criterion is scored.</div><% } %>
 
   <nav class="tabs noprint" style="margin-top:18px">
-    <a href="#summary">Summary</a><a href="#answers">Answers</a><a href="#documents">Documents</a><a href="#reviews">Reviews</a><a href="#messages">Messages</a><% if (history.length) { %><a href="#history">History</a><% } %>
+    <a href="#summary">Summary</a><a href="#answers">Answers</a><a href="#documents">Documents</a><a href="#meetings">Meetings</a><a href="#followups">Follow-ups</a><a href="#reviews">Reviews</a><a href="#messages">Messages</a><% if (history.length) { %><a href="#history">History</a><% } %>
   </nav>
 
   <div class="split">
@@ -131,6 +132,122 @@
       </section>
       <% } %>
 
+
+      <% if (canSeeAnswers) { %>
+      <section id="meetings">
+        <h2>Meetings</h2>
+        <% if (!meetings.length) { %><div class="card muted small">No meetings yet.</div><% } %>
+        <% for (const m of meetings) { const past = new Date(m.starts_at) < new Date(); %>
+          <div class="card">
+            <div class="row between">
+              <div><b><%= m.title %></b> <span class="small muted">· <%= P.KINDS[m.kind] %></span><div class="small"><%= P.whenLagos(m.starts_at) %> · <%= m.duration_min %> min · <%= P.MODES[m.mode] %><%= m.mode === 'in_person' ? ' — ' + m.location : (m.video_link ? ' — ' + m.video_link : '') %></div></div>
+              <span class="badge <%= m.status === 'accepted' || m.status === 'held' ? 'green' : m.status === 'proposed' ? 'amber' : m.status === 'reschedule' ? 'violet' : 'red' %>"><%= P.STAFF_STATUS[m.status] %></span>
+            </div>
+            <% if (m.with_staff) { %><div class="small muted">With: <%= m.with_staff %></div><% } %>
+            <% if (m.agenda) { %><div class="small answer" style="margin-top:6px"><b>Agenda:</b> <%= m.agenda %></div><% } %>
+            <% if (m.founder_note) { %><div class="msg small" style="margin-top:8px"><div class="who">Founder's note</div><div class="answer"><%= m.founder_note %></div></div><% } %>
+            <% if (m.summary) { %><div class="small answer" style="margin-top:8px"><b>Summary (shared):</b> <%= m.summary %></div><% } %>
+            <% if (m.internal_notes) { %><div class="msg internal small" style="margin-top:8px"><div class="who">Internal notes</div><div class="answer"><%= m.internal_notes %></div></div><% } %>
+            <div class="row small noprint" style="margin-top:8px"><a href="/staff/a/<%= app.ref %>/meetings/<%= m.id %>/invite.ics">Calendar file</a></div>
+            <% if (canMeet && !['cancelled','held'].includes(m.status)) { %>
+              <details class="noprint" style="margin-top:10px"><summary class="small" style="cursor:pointer"><b>Record the meeting</b> — summary, notes, follow-ups and documents</summary>
+                <form method="post" action="/staff/a/<%= app.ref %>/meetings/<%= m.id %>" style="margin-top:10px">
+                  <input type="hidden" name="action" value="held">
+                  <div class="field"><label class="lbl">Summary for the founder</label><textarea name="summary"></textarea></div>
+                  <div class="field"><label class="lbl">Internal notes <span class="muted small">(staff only)</span></label><textarea name="internal_notes"></textarea></div>
+                  <div class="grid g2">
+                    <div class="field"><label class="lbl">Next steps for the founder <span class="muted small">(one per line)</span></label><textarea name="founder_actions"></textarea></div>
+                    <div class="field"><label class="lbl">Next steps for ScaleGate <span class="muted small">(one per line)</span></label><textarea name="our_actions"></textarea></div>
+                  </div>
+                  <div class="field"><label class="lbl">Documents to request <span class="muted small">(one per line)</span></label><textarea name="documents" placeholder="e.g. Signed offtake agreement with Shoprite&#10;Audited accounts 2025"></textarea></div>
+                  <div class="field" style="max-width:220px"><label class="lbl">Due by</label><input type="date" name="due_on"></div>
+                  <button class="btn small" type="submit">Save and email the founder the follow-up</button>
+                </form>
+              </details>
+              <details class="noprint" style="margin-top:6px"><summary class="small" style="cursor:pointer">Change the time or cancel</summary>
+                <form method="post" action="/staff/a/<%= app.ref %>/meetings/<%= m.id %>" class="grid g3" style="margin-top:10px">
+                  <input type="hidden" name="action" value="reschedule">
+                  <div class="field"><label class="lbl">New date and time (Lagos)</label><input type="datetime-local" name="starts_at" value="<%= P.toLocal(m.starts_at) %>" required></div>
+                  <div class="field"><label class="lbl">Minutes</label><input type="number" name="duration_min" value="<%= m.duration_min %>"></div>
+                  <div class="field"><label class="lbl">How</label><select name="mode"><% for (const [k, v] of Object.entries(P.MODES)) { %><option value="<%= k %>" <%= m.mode === k ? 'selected' : '' %>><%= v %></option><% } %></select></div>
+                  <div class="field"><label class="lbl">Address (in person)</label><input type="text" name="location" value="<%= m.location || '' %>"></div>
+                  <div class="field"><label class="lbl">Video link or phone</label><input type="text" name="video_link" value="<%= m.video_link || '' %>"></div>
+                  <div class="field" style="align-self:end"><button class="btn small" type="submit">Send the new time</button></div>
+                </form>
+                <form method="post" action="/staff/a/<%= app.ref %>/meetings/<%= m.id %>" data-confirm="Cancel this meeting? The founder will be emailed." class="row">
+                  <input type="hidden" name="action" value="cancel"><input type="text" name="reason" placeholder="Reason (sent to the founder)" style="flex:1"><button class="btn small danger" type="submit">Cancel meeting</button></form>
+              </details>
+            <% } else if (canMeet && m.status === 'held') { %>
+              <p class="small noprint" style="margin:8px 0 0"><a href="#new-meeting" onclick="document.querySelector('#new-meeting select[name=kind]').value='follow_up';document.querySelector('#new-meeting input[name=follows_id]').value='<%= m.id %>'">Schedule a follow-up meeting →</a></p>
+            <% } %>
+          </div>
+        <% } %>
+        <% if (canMeet) { %>
+          <form class="card noprint" id="new-meeting" method="post" action="/staff/a/<%= app.ref %>/meetings">
+            <h3 style="margin-top:0">Invite to a meeting</h3>
+            <input type="hidden" name="follows_id" value="">
+            <div class="grid g3">
+              <div class="field"><label class="lbl">Type</label><select name="kind"><% for (const [k, v] of Object.entries(P.KINDS)) { %><option value="<%= k %>" <%= (meetings.some((x) => x.status === 'held') ? 'follow_up' : 'initial') === k ? 'selected' : '' %>><%= v %></option><% } %></select></div>
+              <div class="field"><label class="lbl">Title <span class="muted small">(optional)</span></label><input type="text" name="title" placeholder="e.g. Introductory meeting"></div>
+              <div class="field"><label class="lbl">Date and time (Lagos)</label><input type="datetime-local" name="starts_at" required></div>
+              <div class="field"><label class="lbl">Minutes</label><input type="number" name="duration_min" value="60" min="15"></div>
+              <div class="field"><label class="lbl">How</label><select name="mode"><% for (const [k, v] of Object.entries(P.MODES)) { %><option value="<%= k %>"><%= v %></option><% } %></select></div>
+              <div class="field"><label class="lbl">From ScaleGate</label><input type="text" name="with_staff" value="<%= person.name %>"></div>
+            </div>
+            <div class="grid g2">
+              <div class="field"><label class="lbl">Address <span class="muted small">(in person; default our office)</span></label><input type="text" name="location" placeholder="<%= config.org.address %>"></div>
+              <div class="field"><label class="lbl">Video link or phone number</label><input type="text" name="video_link" placeholder="Zoom, Google Meet or Teams link"></div>
+            </div>
+            <div class="field"><label class="lbl">Agenda</label><textarea name="agenda" placeholder="What we will cover and anything the founder should bring"></textarea></div>
+            <button class="btn" type="submit">Send the invitation</button> <span class="small muted">The founder gets an email with a calendar invitation and replies in their portal.</span>
+          </form>
+        <% } %>
+      </section>
+
+      <section id="followups">
+        <h2>Follow-ups and document requests</h2>
+        <div class="grid g2">
+          <div class="card">
+            <h3 style="margin-top:0">Documents requested</h3>
+            <% if (!followups.requests.length) { %><p class="small muted">None.</p><% } %>
+            <% for (const rq of followups.requests) { %>
+              <div style="padding:8px 0;border-bottom:1px solid #f0f0ee">
+                <div class="row between"><b class="small"><%= rq.title %></b><span class="badge <%= rq.status === 'accepted' ? 'green' : rq.status === 'received' ? 'blue' : rq.status === 'cancelled' ? 'muted' : 'amber' %>"><%= rq.status %></span></div>
+                <div class="small muted"><%= rq.due_on ? 'Due ' + date(rq.due_on) : '' %></div>
+                <% for (const f of rq.files) { %><div class="small">📎 <a href="/files/<%= f.id %>" target="_blank"><%= f.filename %></a></div><% } %>
+                <% if (canMeet && rq.status !== 'cancelled') { %>
+                  <form method="post" action="/staff/a/<%= app.ref %>/requests/<%= rq.id %>" class="row small noprint" style="margin-top:4px">
+                    <select name="status" style="width:auto;padding:3px 6px"><option value="accepted">Accept</option><option value="open">Ask again</option><option value="cancelled">No longer needed</option></select><button class="btn small ghost">Set</button></form>
+                <% } %>
+              </div>
+            <% } %>
+            <% if (canMeet) { %>
+              <form method="post" action="/staff/a/<%= app.ref %>/requests" class="noprint" style="margin-top:10px">
+                <div class="field" style="margin-bottom:8px"><input type="text" name="title" placeholder="Document needed" required></div>
+                <div class="field" style="margin-bottom:8px"><textarea name="description" placeholder="Details (optional)" style="min-height:50px"></textarea></div>
+                <div class="row"><input type="date" name="due_on" style="width:auto"><button class="btn small" type="submit">Request and email the founder</button></div>
+              </form>
+            <% } %>
+          </div>
+          <div class="card">
+            <h3 style="margin-top:0">Follow-up actions</h3>
+            <% if (!followups.actions.length) { %><p class="small muted">None.</p><% } %>
+            <% for (const a of followups.actions) { %>
+              <div class="row between small" style="padding:6px 0;border-bottom:1px solid #f0f0ee;flex-wrap:nowrap">
+                <span style="<%= a.done_at ? 'text-decoration:line-through;color:var(--muted)' : '' %>"><span class="badge <%= a.owner === 'founder' ? 'kind' : '' %>"><%= a.owner === 'founder' ? 'Founder' : 'ScaleGate' %></span> <%= a.body %><%= a.due_on ? ' · due ' + date(a.due_on) : '' %></span>
+                <% if (canMeet) { %><form method="post" action="/staff/a/<%= app.ref %>/actions/<%= a.id %>" class="noprint"><input type="hidden" name="done" value="<%= a.done_at ? 'no' : 'yes' %>"><button class="linkbtn"><%= a.done_at ? 'reopen' : 'done' %></button></form><% } %>
+              </div>
+            <% } %>
+            <% if (canMeet) { %>
+              <form method="post" action="/staff/a/<%= app.ref %>/actions" class="noprint" style="margin-top:10px">
+                <div class="field" style="margin-bottom:8px"><input type="text" name="body" placeholder="Next step" required></div>
+                <div class="row"><select name="owner" style="width:auto"><option value="founder">For the founder</option><option value="scalegate">For ScaleGate</option></select><input type="date" name="due_on" style="width:auto"><button class="btn small" type="submit">Add</button></div>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      </section>
+      <% } %>
       <section id="reviews">
         <h2>Reviews</h2>
         <% for (const k of rubrics) { const sm = summaries[k]; const R = RUBRICS[k]; %>

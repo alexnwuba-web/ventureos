@@ -1,15 +1,12 @@
 <%- include('../partials/head') %>
-<% const st = status(app.status); %>
 <div class="wrap">
-  <p class="small"><a href="/my">← Your applications</a></p>
-  <div class="row between">
-    <div>
-      <h1><%= app.venture_name %></h1>
-      <div class="row"><span class="muted"><%= app.ref %></span><% for (const k of app.kinds) { %><span class="badge kind"><%= kindLabel(k) %></span><% } %><span class="badge <%= st.tone %>"><%= st.founder %></span></div>
-    </div>
-  </div>
+  <%- include('../partials/portalnav') %>
   <% if (notice === 'saved') { %><div class="notice ok" style="margin-top:16px">Saved.</div><% } %>
   <% if (notice === 'sent') { %><div class="notice ok" style="margin-top:16px">Sent. We have emailed you a confirmation and will write to you at each stage.</div><% } %>
+  <% for (const m of upcoming) { %>
+    <div class="notice <%= m.status === 'proposed' ? 'warn' : 'ok' %>" style="margin-top:16px"><b><%= m.title %>:</b> <%= P.whenLagos(m.starts_at) %> — <%= P.STATUS[m.status] %>. <a href="/my/a/<%= app.ref %>/meetings"><%= m.status === 'proposed' ? 'Reply' : 'Details' %></a></div>
+  <% } %>
+  <% if (counts.requests || counts.actions) { %><div class="notice warn" style="margin-top:16px">ScaleGate has asked for <%= [counts.requests ? counts.requests + ' document' + (counts.requests > 1 ? 's' : '') : '', counts.actions ? counts.actions + ' follow-up' + (counts.actions > 1 ? 's' : '') : ''].filter(Boolean).join(' and ') %>. <a href="/my/a/<%= app.ref %>/followups">See what is needed</a></div><% } %>
   <% if (app.status === 'full_requested') { %><div class="notice warn" style="margin-top:16px"><b>Good news — we would like to proceed.</b> Please complete the full documentation: the parts marked <b>New</b> and the documents still required. Send it when everything is in.</div><% } %>
   <% if (app.status === 'draft') { %><div class="notice" style="margin-top:16px"><b>Part 1 of 2 — initial submission.</b> Tell us about the venture and what you are asking for, with your pitch deck and business plan. If we would like to proceed, we will invite you to Part 2, the full documentation (financial statements, tax returns, the business background questionnaire and the rest).</div><% } %>
   <% if (app.status === 'info_requested') { %><div class="notice warn" style="margin-top:16px">We need more information — see the message below. Update your answers or documents, then send the application back.</div><% } %>
@@ -65,7 +62,7 @@
       <div class="card small">
         <h3>Where it stands</h3>
         <table class="kv">
-          <tr><td>Status</td><td><%= st.founder %></td></tr>
+          <tr><td>Status</td><td><%= status(app.status).founder %></td></tr>
           <tr><td>Started</td><td><%= date(app.created_at) %></td></tr>
           <tr><td>Sent</td><td><%= date(app.submitted_at) %></td></tr>
           <% if (app.cohort_name) { %><tr><td>Cohort</td><td><%= app.cohort_name %></td></tr><% } %>

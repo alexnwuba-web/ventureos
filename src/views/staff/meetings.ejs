@@ -1,0 +1,31 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <h1>Meetings and follow-ups</h1>
+  <p class="muted">Meetings with applicants from the last 30 days onwards. Schedule a meeting from the application's page.</p>
+  <div class="card" style="padding:0">
+    <table class="list">
+      <thead><tr><th>When (Lagos)</th><th>Venture</th><th>Meeting</th><th>How</th><th>Status</th></tr></thead>
+      <tbody>
+      <% if (!meetings.length) { %><tr><td colspan="5" class="muted">No meetings.</td></tr><% } %>
+      <% for (const m of meetings) { const past = new Date(m.starts_at) < new Date(); %>
+        <tr style="<%= past ? 'opacity:.65' : '' %>"><td class="nowrap"><%= when(m.starts_at) %></td><td><a href="/staff/a/<%= m.ref %>#meetings"><b><%= m.venture_name %></b></a><div class="small muted"><%= m.ref %> · <%= m.applicant_name %></div></td>
+          <td><%= m.title %><div class="small muted"><%= P.KINDS[m.kind] %><%= m.with_staff ? ' · ' + m.with_staff : '' %></div></td><td class="small"><%= P.MODES[m.mode] %></td>
+          <td><span class="badge <%= m.status === 'accepted' || m.status === 'held' ? 'green' : m.status === 'proposed' ? 'amber' : m.status === 'reschedule' ? 'violet' : 'red' %>"><%= P.STAFF_STATUS[m.status] %></span><% if (past && ['proposed','accepted'].includes(m.status)) { %><div class="small" style="color:var(--amber)">Record the outcome</div><% } %></td></tr>
+      <% } %>
+      </tbody>
+    </table>
+  </div>
+  <div class="grid g2">
+    <div><h2>Documents awaited or to check</h2>
+      <div class="card" style="padding:0"><table class="list">
+        <% if (!openRequests.length) { %><tr><td class="muted">None.</td></tr><% } %>
+        <% for (const r of openRequests) { %><tr><td><a href="/staff/a/<%= r.ref %>#followups"><%= r.venture_name %></a> — <%= r.title %><div class="small muted"><%= r.due_on ? 'due ' + date(r.due_on) : '' %></div></td><td><span class="badge <%= r.status === 'received' ? 'blue' : 'amber' %>"><%= r.status === 'received' ? 'to check' : 'awaited' %></span></td></tr><% } %>
+      </table></div></div>
+    <div><h2>Open follow-ups</h2>
+      <div class="card" style="padding:0"><table class="list">
+        <% if (!openActions.length) { %><tr><td class="muted">None.</td></tr><% } %>
+        <% for (const a of openActions) { %><tr><td><a href="/staff/a/<%= a.ref %>#followups"><%= a.venture_name %></a> — <%= a.body %><div class="small muted"><%= a.owner === 'founder' ? 'Founder' : 'ScaleGate' %><%= a.due_on ? ' · due ' + date(a.due_on) : '' %></div></td></tr><% } %>
+      </table></div></div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

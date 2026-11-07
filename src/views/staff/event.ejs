@@ -1,0 +1,59 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <p class="small"><a href="/staff/events">← Presentations and meetups</a></p>
+  <div class="row between"><h1><%= e.title %></h1>
+    <span class="row"><a class="btn small ghost" href="/events/<%= e.id %>" target="_blank">Public page</a>
+      <% if (isAdmin) { %><form method="post" action="/staff/events/<%= e.id %>/copy"><button class="btn small" type="submit">Copy to next month</button></form><% } %></span></div>
+  <p class="muted"><%= P.whenLagos(e.starts_at) %> · <%= e.registered %> registered<%= e.capacity ? ' of ' + e.capacity : '' %><%= e.pitch_slots ? ` · ${e.selected} of ${e.pitch_slots} presenting slots filled` : '' %>
+    <% if (!e.public) { %> · <span class="badge muted">Draft — not on the front page</span><% } %></p>
+
+  <% if (e.pitch_slots) { %>
+  <h2 id="submissions">Submissions to present</h2>
+  <% if (!subs.length) { %><div class="card muted">None yet.</div><% } %>
+  <% for (const s of subs) { %>
+    <div class="card">
+      <div class="row between"><div><b><%= s.venture_name %></b><% if (s.pillar) { %> <span class="badge <%= s.pillar %>"><%= pillarLabel(s.pillar) %></span><% } %>
+        <div class="small muted"><%= s.founder_name %> · <%= s.founder_email %><% if (s.ref) { %> · <a href="/staff/a/<%= s.ref %>"><%= s.ref %></a><% } %></div></div>
+        <span class="badge <%= s.status === 'selected' ? 'green' : s.status === 'declined' || s.status === 'withdrawn' ? 'red' : s.status === 'shortlisted' ? 'violet' : 'amber' %>"><%= E.SUB_STATUS[s.status] %></span></div>
+      <p style="margin:8px 0"><%= s.one_liner %></p>
+      <div class="small"><%= s.ask_kind ? 'Looking for: ' + s.ask_kind : '' %><%= s.ask_amount ? ' · ' + (s.ask_currency || '') + ' ' + full(s.ask_amount) : '' %>
+        <% if (s.deck_name) { %> · <a href="/events/<%= e.id %>/deck/<%= s.id %>">Deck: <%= s.deck_name %></a><% } %></div>
+      <% if (s.why_now) { %><p class="small muted answer" style="margin:6px 0 0"><%= s.why_now %></p><% } %>
+      <% if (isAdmin && s.status !== 'withdrawn') { %>
+        <form method="post" action="/staff/events/<%= e.id %>/submissions/<%= s.id %>" class="row" style="margin-top:10px">
+          <select name="status" style="width:auto"><% for (const [k, v] of Object.entries(E.SUB_STATUS)) { if (k === 'withdrawn') continue; %><option value="<%= k %>" <%= s.status === k ? 'selected' : '' %>><%= v %></option><% } %></select>
+          <input type="text" name="slot" value="<%= s.slot || '' %>" placeholder="Slot, e.g. 2nd, 18:20" style="width:170px">
+          <input type="text" name="staff_note" value="<%= s.staff_note || '' %>" placeholder="Note to the founder" style="flex:1;min-width:200px">
+          <button class="btn small" type="submit">Save</button>
+        </form>
+        <div class="small muted" style="margin-top:4px">Selecting or declining emails the founder.</div>
+      <% } %>
+    </div>
+  <% } %>
+  <% } %>
+
+  <div class="row between"><h2>Registered to attend</h2><a class="small" href="/staff/events/<%= e.id %>/registrations.csv">Download as a spreadsheet (CSV)</a></div>
+  <div class="card" style="padding:0">
+    <table class="list">
+      <thead><tr><th>Name</th><th>Organisation</th><th>As</th><th>Contact</th><th>Interested in</th></tr></thead>
+      <tbody>
+      <% if (!regs.length) { %><tr><td colspan="5" class="muted">No one yet.</td></tr><% } %>
+      <% for (const x of regs) { %>
+        <tr style="<%= x.cancelled ? 'opacity:.5;text-decoration:line-through' : '' %>"><td><%= x.name %></td><td><%= x.organisation || '' %></td><td><span class="badge <%= x.role === 'investor' ? 'green' : '' %>"><%= E.ROLES[x.role] %></span></td>
+          <td class="small"><%= x.email %><br><%= x.phone || '' %></td><td class="small"><%= x.interests || '' %></td></tr>
+      <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <% if (isAdmin) { %>
+    <details class="card" style="margin-top:16px"><summary style="cursor:pointer"><b>Edit the event</b></summary>
+      <form method="post" action="/staff/events/<%= e.id %>" style="margin-top:12px">
+        <%- include('_eventform', { e, P }) %>
+        <div class="field" style="max-width:220px"><label class="lbl">Status</label><select name="status"><% for (const s of ['scheduled','cancelled','held']) { %><option <%= e.status === s ? 'selected' : '' %>><%= s %></option><% } %></select></div>
+        <button class="btn" type="submit">Save</button> <span class="small muted">Changing the time, place or cancelling emails everyone registered and the selected presenters.</span>
+      </form>
+    </details>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

@@ -133,3 +133,33 @@ table.kv td:first-child { color: var(--muted); width: 44%; padding-right: 12px; 
 .code-input { font-size: 28px !important; letter-spacing: 0.4em; text-align: center; max-width: 260px; }
 @media (max-width: 600px) { .hero h1 { font-size: 32px; } .top nav a { padding: 6px 7px; } }
 @media print { .top, footer, .noprint { display: none !important; } body { background: #fff; } .card { border: 0; padding: 0; } }
+
+/* Front page */
+.section { padding: 46px 0; border-bottom: 1px solid var(--line); }
+.section:last-of-type { border-bottom: 0; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #9a7a2f; font-weight: 700; margin: 0 0 8px; }
+.lead { font-size: 17px; color: var(--ink-2); max-width: 760px; }
+.announce { border-left: 4px solid var(--gold); }
+.announce .when { font-family: Georgia, serif; font-size: 20px; }
+.campus { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 0; padding: 0; overflow: hidden; }
+.campus > div { padding: 24px 26px; }
+.campus .side { background: var(--ink); color: #e7eaf1; }
+.campus .side h3 { color: #fff; }
+.campus .side li { margin: 0 0 7px; }
+.campus ul { padding-left: 18px; margin: 0; }
+@media (max-width: 860px) { .campus { grid-template-columns: 1fr; } }
+.interest h3 { margin: 6px 0 6px; font-size: 17px; }
+.interest .support { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.badge.scalegate { background: #e8edf7; color: var(--ink); }
+.principles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; padding: 0; list-style: none; }
+.principles li { padding-left: 22px; position: relative; }
+.principles li::before { content: ''; position: absolute; left: 0; top: 8px; width: 9px; height: 9px; background: var(--gold); transform: rotate(45deg); }
+@media (max-width: 700px) { .principles { grid-template-columns: 1fr; } }
+.datebox { width: 58px; flex: none; text-align: center; border: 1px solid var(--line); border-radius: 9px; padding: 6px 0; margin-right: 14px; background: #fff; }
+.datebox b { display: block; font-family: Georgia, serif; font-size: 24px; line-height: 1.1; }
+.datebox span { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+
+/* Keep the staff menu on one line on laptop screens */
+.top nav a, .top nav button { padding: 7px 9px; font-size: 13.5px; }
+@media (max-width: 1260px) { .brand span { display: none; } }
+@media (max-width: 1100px) { .top .wrap { height: auto; min-height: 60px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; } }

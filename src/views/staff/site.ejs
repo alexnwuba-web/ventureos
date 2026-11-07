@@ -1,0 +1,66 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <h1>Front page</h1>
+  <p class="muted">What the public sees on the front page. Cohort announcements are set under <a href="/staff/cohorts">Cohorts</a>, and presentations and meetups under <a href="/staff/events">Events</a>. <a href="/" target="_blank">Open the front page →</a></p>
+
+  <h2 id="campuses">Campuses</h2>
+  <% for (const k of campuses) { %>
+    <form class="card" method="post" action="/staff/site/campuses">
+      <input type="hidden" name="id" value="<%= k.id %>">
+      <div class="grid g3">
+        <div class="field"><label class="lbl">Name</label><input type="text" name="name" value="<%= k.name %>" required></div>
+        <div class="field"><label class="lbl">City</label><input type="text" name="city" value="<%= k.city || '' %>"></div>
+        <div class="field"><label class="lbl">Country</label><input type="text" name="country" value="<%= k.country || '' %>"></div>
+        <div class="field"><label class="lbl">Status</label><select name="status"><% for (const [v, l] of [['planned','Planned'],['design','In design'],['renovation','Under renovation'],['open','Open']]) { %><option value="<%= v %>" <%= k.status === v ? 'selected' : '' %>><%= l %></option><% } %></select></div>
+        <div class="field"><label class="lbl">Opening</label><input type="text" name="opens" value="<%= k.opens || '' %>"></div>
+        <div class="field"><label class="lbl">Order</label><input type="number" name="sort" value="<%= k.sort %>"></div>
+      </div>
+      <div class="field"><label class="lbl">Summary</label><textarea name="summary"><%= k.summary %></textarea></div>
+      <div class="field"><label class="lbl">Spaces and features <span class="muted small">(one per line)</span></label><textarea name="spaces" style="min-height:180px"><%= k.spaces || '' %></textarea></div>
+      <div class="field"><label class="lbl">Capacity</label><input type="text" name="capacity" value="<%= k.capacity || '' %>"></div>
+      <div class="row between"><label class="choice"><input type="checkbox" name="visible" value="yes" <%= k.visible ? 'checked' : '' %>> Show on the front page</label>
+        <span class="row"><button class="btn small" type="submit">Save</button><button class="btn small danger" type="submit" name="delete" value="yes" data-confirm="Delete this campus?">Delete</button></span></div>
+    </form>
+  <% } %>
+  <details class="card"><summary style="cursor:pointer"><b>Add a campus</b></summary>
+    <form method="post" action="/staff/site/campuses" style="margin-top:12px">
+      <div class="grid g3"><div class="field"><label class="lbl">Name</label><input type="text" name="name" required></div><div class="field"><label class="lbl">City</label><input type="text" name="city"></div><div class="field"><label class="lbl">Country</label><input type="text" name="country"></div></div>
+      <div class="field"><label class="lbl">Summary</label><textarea name="summary"></textarea></div>
+      <div class="field"><label class="lbl">Spaces and features (one per line)</label><textarea name="spaces"></textarea></div>
+      <div class="grid g3"><div class="field"><label class="lbl">Status</label><select name="status"><option value="planned">Planned</option><option value="design">In design</option><option value="renovation">Under renovation</option><option value="open">Open</option></select></div><div class="field"><label class="lbl">Opening</label><input type="text" name="opens"></div><div class="field"><label class="lbl">Capacity</label><input type="text" name="capacity"></div></div>
+      <button class="btn" type="submit">Add</button>
+    </form>
+  </details>
+
+  <h2 id="interests">Projects that interest us</h2>
+  <div class="card" style="padding:0">
+    <table class="list">
+      <thead><tr><th style="width:50px">Order</th><th>Project area</th><th style="width:130px">Pillar</th><th style="width:70px">Show</th><th></th></tr></thead>
+      <tbody>
+      <% for (const i of interests) { %>
+        <tr><td colspan="5" style="padding:0">
+          <form method="post" action="/staff/site/interests" class="row" style="padding:10px;align-items:flex-start;flex-wrap:nowrap">
+            <input type="hidden" name="id" value="<%= i.id %>">
+            <input type="number" name="sort" value="<%= i.sort %>" style="width:60px">
+            <div style="flex:1"><input type="text" name="title" value="<%= i.title %>" required><textarea name="body" style="min-height:52px;margin-top:6px"><%= i.body %></textarea>
+              <input type="text" name="support" value="<%= i.support || '' %>" placeholder="Support offered, e.g. Residency · Equity · Debt" style="margin-top:6px"></div>
+            <select name="pillar" style="width:120px"><option value="">—</option><% for (const [v, l] of [['make','Make'],['grow','Grow'],['create','Create'],['scalegate','ScaleGate']]) { %><option value="<%= v %>" <%= i.pillar === v ? 'selected' : '' %>><%= l %></option><% } %></select>
+            <input type="checkbox" name="visible" value="yes" <%= i.visible ? 'checked' : '' %> style="margin-top:12px">
+            <span class="stack"><button class="btn small" type="submit">Save</button><button class="btn small danger" name="delete" value="yes" data-confirm="Delete this project area?">Delete</button></span>
+          </form>
+        </td></tr>
+      <% } %>
+      </tbody>
+    </table>
+  </div>
+  <form class="card" method="post" action="/staff/site/interests">
+    <h3 style="margin-top:0">Add a project area</h3>
+    <div class="grid g3"><div class="field"><label class="lbl">Title</label><input type="text" name="title" required></div>
+      <div class="field"><label class="lbl">Pillar</label><select name="pillar"><option value="">—</option><option value="make">Make</option><option value="grow">Grow</option><option value="create">Create</option><option value="scalegate">ScaleGate</option></select></div>
+      <div class="field"><label class="lbl">Order</label><input type="number" name="sort" value="200"></div></div>
+    <div class="field"><label class="lbl">Description</label><textarea name="body"></textarea></div>
+    <div class="field"><label class="lbl">Support offered</label><input type="text" name="support" placeholder="Residency · Equity · Debt · Grant"></div>
+    <button class="btn" type="submit">Add</button>
+  </form>
+</div>
+<%- include('../partials/foot') %>

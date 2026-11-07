@@ -1,0 +1,10 @@
+<% const st0 = status(app.status); %>
+<p class="small"><a href="/my">← Your applications</a></p>
+<h1><%= app.venture_name %></h1>
+<div class="row"><span class="muted"><%= app.ref %></span><% for (const k of app.kinds) { %><span class="badge kind"><%= kindLabel(k) %></span><% } %><span class="badge <%= st0.tone %>"><%= st0.founder %></span></div>
+<nav class="tabs" style="margin-top:18px">
+  <a href="/my/a/<%= app.ref %>" class="<%= tab === 'overview' ? 'on' : '' %>">Application</a>
+  <a href="/my/a/<%= app.ref %>/meetings" class="<%= tab === 'meetings' ? 'on' : '' %>">Meetings<% if (counts.awaiting) { %> <span class="badge amber"><%= counts.awaiting %> to answer</span><% } else if (counts.upcoming) { %> <span class="badge"><%= counts.upcoming %></span><% } %></a>
+  <a href="/my/a/<%= app.ref %>/followups" class="<%= tab === 'followups' ? 'on' : '' %>">Follow-ups and requested documents<% if (counts.actions + counts.requests) { %> <span class="badge amber"><%= counts.actions + counts.requests %></span><% } %></a>
+  <a href="/my/a/<%= app.ref %>#messages">Messages</a>
+</nav>

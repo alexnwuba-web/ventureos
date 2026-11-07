@@ -1,0 +1,10 @@
+<%- include('../partials/head') %>
+<div class="wrap" style="max-width:560px">
+  <div class="card">
+    <h1>Cancel your place</h1>
+    <p><%= e.title %> — <%= P.whenLagos(e.starts_at) %>.</p>
+    <form method="post" action="/events/<%= e.id %>/cancel"><input type="hidden" name="e" value="<%= email %>"><input type="hidden" name="t" value="<%= t %>">
+      <button class="btn danger" type="submit">Cancel my place</button> <a href="/events/<%= e.id %>">Keep it</a></form>
+  </div>
+</div>
+<%- include('../partials/foot') %>

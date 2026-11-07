@@ -1,0 +1,28 @@
+<%- include('../partials/head') %>
+<div class="wrap narrow">
+  <p class="small"><a href="/events/<%= e.id %>">← <%= e.title %></a></p>
+  <h1>Submit to present</h1>
+  <p class="muted"><%= e.title %> · <%= P.whenLagos(e.starts_at) %><%= e.submissions_close ? ' · submissions close ' + date(e.submissions_close) : '' %></p>
+  <% if (error) { %><div class="notice err"><%= error %></div><% } %>
+  <% if (!E.pitchOpen(e)) { %><div class="notice warn">Submissions to present at this event are closed.</div><% } else { %>
+  <form class="card" method="post" action="/events/<%= e.id %>/present" enctype="multipart/form-data">
+    <% if (apps.length) { %>
+      <div class="field"><label class="lbl">Link to your VentureOS application <span class="muted small">(optional)</span></label>
+        <select name="application"><option value="">None</option><% for (const a of apps) { %><option value="<%= a.id %>"><%= a.venture_name %> (<%= a.ref %>)</option><% } %></select>
+        <div class="help">Linking lets us see your full application when selecting presenters.</div></div>
+    <% } %>
+    <div class="field"><label class="lbl">Venture name<span class="req">*</span></label><input type="text" name="venture_name" required maxlength="160"></div>
+    <div class="field"><label class="lbl">What it does, in one sentence<span class="req">*</span></label><input type="text" name="one_liner" required maxlength="300"></div>
+    <div class="field"><label class="lbl">Pillar</label><select name="pillar"><option value="">—</option><option value="make">Make</option><option value="grow">Grow</option><option value="create">Create</option></select></div>
+    <div class="grid g3">
+      <div class="field"><label class="lbl">You are looking for</label><select name="ask_kind"><option value="equity">Equity investment</option><option value="debt">Debt finance</option><option value="grant">Grant or sponsorship</option><option value="partners">Partners or customers</option><option value="other">Other</option></select></div>
+      <div class="field"><label class="lbl">Amount</label><input type="text" name="ask_amount" inputmode="decimal"></div>
+      <div class="field"><label class="lbl">Currency</label><select name="ask_currency"><option>NGN</option><option>USD</option><option>EUR</option><option>GBP</option><option>GHS</option><option>KES</option></select></div>
+    </div>
+    <div class="field"><label class="lbl">Why should investors hear you this month?</label><textarea name="why_now"></textarea></div>
+    <div class="field"><label class="lbl">Pitch deck <span class="muted small">(PDF or PowerPoint, up to 20 MB)</span></label><input type="file" name="deck"></div>
+    <button class="btn gold" type="submit">Submit</button>
+  </form>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

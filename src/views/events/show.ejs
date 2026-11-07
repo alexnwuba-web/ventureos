@@ -1,0 +1,58 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <p class="small"><a href="/events">← All presentations and meetups</a></p>
+  <span class="badge kind"><%= E.KINDS[e.kind] %></span><% if (e.status === 'cancelled') { %> <span class="badge red">Cancelled</span><% } %><% if (!e.public) { %> <span class="badge muted">Not published</span><% } %>
+  <h1 style="margin-top:8px"><%= e.title %></h1>
+  <p class="lead" style="margin-top:0"><%= P.whenLagos(e.starts_at) %> · <%= e.duration_min %> minutes</p>
+  <% if (notice === 'registered') { %><div class="notice ok">You are registered. We have emailed you a confirmation with a calendar invitation.</div><% } %>
+  <% if (notice === 'submitted') { %><div class="notice ok">Your submission to present has been received. We will let you know if you are selected.</div><% } %>
+  <% if (error) { %><div class="notice err"><%= error %></div><% } %>
+  <div class="split">
+    <div>
+      <div class="card">
+        <% if (e.summary) { %><p class="answer" style="margin-top:0"><%= e.summary %></p><% } %>
+        <table class="kv">
+          <tr><td>When</td><td><%= P.whenLagos(e.starts_at) %></td></tr>
+          <tr><td>Where</td><td><%= e.venue || 'Online' %><%= e.venue && e.online_link ? ' — and online' : '' %></td></tr>
+          <% if (e.capacity) { %><tr><td>Places</td><td><%= Math.max(0, e.capacity - e.registered) %> of <%= e.capacity %> left</td></tr><% } %>
+          <% if (e.pitch_slots) { %><tr><td>Presenting</td><td><%= e.pitch_slots %> ventures<%= e.submissions_close ? ' · submissions close ' + date(e.submissions_close) : '' %></td></tr><% } %>
+        </table>
+        <p style="margin-bottom:0"><a class="small" href="/events/<%= e.id %>/invite.ics">Add to my calendar</a></p>
+      </div>
+
+      <% if (e.pitch_slots) { %>
+      <div class="card">
+        <h2 style="margin-top:0">Present your venture</h2>
+        <p class="muted">Founders raising equity or debt, or looking for partners, can submit to present. We select the ventures for each month and tell everyone who applied.</p>
+        <% for (const s of subs) { %>
+          <div class="msg"><b><%= s.venture_name %></b> — <span class="badge <%= s.status === 'selected' ? 'green' : s.status === 'declined' ? 'red' : 'amber' %>"><%= E.SUB_STATUS[s.status] %></span>
+            <%= s.slot ? ' · ' + s.slot : '' %><% if (s.staff_note && ['selected','declined'].includes(s.status)) { %><div class="small" style="margin-top:6px"><%= s.staff_note %></div><% } %>
+            <% if (['submitted','shortlisted','selected'].includes(s.status)) { %><form method="post" action="/events/<%= e.id %>/present/<%= s.id %>/withdraw" data-confirm="Withdraw this submission?" style="margin-top:6px"><button class="linkbtn small muted">withdraw</button></form><% } %></div>
+        <% } %>
+        <% if (E.pitchOpen(e)) { %><a class="btn gold" href="/events/<%= e.id %>/present"><%= subs.length ? 'Submit another venture' : 'Submit to present' %></a><% } else { %><p class="small muted">Submissions to present are closed for this date.</p><% } %>
+      </div>
+      <% } %>
+    </div>
+
+    <aside id="register">
+      <div class="card">
+        <h3 style="margin-top:0">Attend</h3>
+        <% if (mine) { %>
+          <div class="notice ok" style="margin:0 0 10px">You are registered<%= e.online_link ? '' : '' %>.</div>
+          <% if (e.online_link) { %><p class="small">Join online: <a href="<%= e.online_link %>" target="_blank" rel="noopener"><%= e.online_link %></a></p><% } %>
+        <% } else if (E.registrationOpen(e)) { %>
+          <form method="post" action="/events/<%= e.id %>/register">
+            <div class="field"><label class="lbl">Name</label><input type="text" name="name" value="<%= person ? person.name : '' %>" required></div>
+            <div class="field"><label class="lbl">Email</label><input type="email" name="email" value="<%= person ? person.email : '' %>" required></div>
+            <div class="field"><label class="lbl">Phone</label><input type="tel" name="phone"></div>
+            <div class="field"><label class="lbl">Organisation</label><input type="text" name="organisation"></div>
+            <div class="field"><label class="lbl">I am attending as</label><select name="role"><% for (const [k, v] of Object.entries(E.ROLES)) { %><option value="<%= k %>"><%= v %></option><% } %></select></div>
+            <div class="field"><label class="lbl">What are you interested in? <span class="muted small">(optional)</span></label><textarea name="interests" style="min-height:60px"></textarea></div>
+            <button class="btn" type="submit">Register</button>
+          </form>
+        <% } else { %><p class="muted"><%= E.full(e) ? 'This event is full.' : 'Registration is closed.' %></p><% } %>
+      </div>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/foot') %>

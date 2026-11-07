@@ -59,6 +59,19 @@ const set = (appId, values) => Promise.all(Object.entries(values).map(([k, v]) =
   await db.query(`UPDATE applications SET status = 'submitted', submitted_at = now() - interval '1 day' WHERE id = $1`, [a3.id]);
   await db.query(`UPDATE ventures SET pillar = 'create', country = 'Ghana' WHERE id = $1`, [a3.venture_id]);
 
+  const admin = await db.one(`SELECT id FROM people WHERE email = 'alex@scalegate.org'`);
+  const inDays = (n, hh) => { const d = new Date(Date.now() + n * 864e5); d.setUTCHours(hh - 1, 0, 0, 0); return d; };
+  if (!(await db.one('SELECT 1 FROM events LIMIT 1'))) {
+    await db.query(`INSERT INTO events (title, kind, starts_at, duration_min, venue, summary, capacity, pitch_slots, submissions_close, created_by) VALUES
+      ('VentureOS Investment Evening — December', 'investment', $1, 150, 'ScaleGate Africa, 18A Sinari Daranijo Street, Victoria Island, Lagos',
+       'Five ventures present to investors, lenders and corporate partners, followed by questions and networking. Founders: submit to present by the closing date.', 80, 5, $2, $4),
+      ('VentureOS Meetup: Water and energy founders', 'meetup', $3, 120, 'ScaleGate Africa, 18A Sinari Daranijo Street, Victoria Island, Lagos',
+       'An informal evening for founders working on water treatment, solar and waste-to-energy, with ScaleGate partners.', 60, NULL, NULL, $4)`,
+    [inDays(26, 18), new Date(Date.now() + 16 * 864e5).toISOString().slice(0, 10), inDays(12, 17), admin.id]);
+    await db.query(`INSERT INTO meetings (application_id, title, kind, starts_at, duration_min, mode, location, agenda, with_staff, created_by)
+      VALUES ($1, 'First meeting', 'initial', $2, 60, 'in_person', '18A Sinari Daranijo Street, Victoria Island, Lagos', 'Basis of the valuation; route to the UK market', 'Dr. Alexander Nwuba', $3)`,
+    [a2.id, inDays(5, 11), admin.id]);
+  }
   console.log('Demo data ready. Sign in as alex@scalegate.org (the code is printed in the log when SMTP is not set).');
   await end();
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -14,6 +14,7 @@ const D = require('../domain/documents');
 const W = require('../domain/workflow');
 const { audit } = require('../lib/audit');
 const mail = require('../lib/mail');
+const P = require('../domain/portal');
 
 const r = express.Router();
 r.use('/my', requirePerson);
@@ -47,11 +48,20 @@ r.post('/my/profile', async (req, res) => {
 
 r.get('/my', async (req, res) => {
   if (!req.person.name) return res.redirect('/my/profile');
-  const apps = await db.many(`SELECT a.*, v.name AS venture_name, v.pillar FROM applications a JOIN ventures v ON v.id = a.venture_id
+  const apps = await db.many(`SELECT a.*, v.name AS venture_name, v.pillar,
+      (SELECT count(*) FROM meetings m WHERE m.application_id = a.id AND m.status = 'proposed' AND m.starts_at > now())::int AS awaiting,
+      (SELECT min(m.starts_at) FROM meetings m WHERE m.application_id = a.id AND m.status IN ('proposed','accepted') AND m.starts_at > now()) AS next_meeting,
+      (SELECT count(*) FROM document_requests r WHERE r.application_id = a.id AND r.status = 'open')::int AS requests,
+      (SELECT count(*) FROM actions x WHERE x.application_id = a.id AND x.owner = 'founder' AND x.done_at IS NULL)::int AS actions
+    FROM applications a JOIN ventures v ON v.id = a.venture_id
     WHERE a.applicant_id = $1 ORDER BY a.created_at DESC`, [req.person.id]);
   const tab = await db.many(`SELECT v.id, v.name, sum(t.amount) AS balance, max(t.currency) AS currency FROM tab_entries t JOIN ventures v ON v.id = t.venture_id
     WHERE v.owner_id = $1 GROUP BY v.id, v.name`, [req.person.id]);
-  res.render('my/home', { title: 'Your applications', apps, tab });
+  const presentations = await db.many(`SELECT s.*, e.title AS event_title, e.starts_at FROM event_submissions s JOIN events e ON e.id = s.event_id
+    WHERE s.person_id = $1 AND e.starts_at > now() - interval '60 days' ORDER BY e.starts_at`, [req.person.id]);
+  const registrations = await db.many(`SELECT e.* FROM event_registrations x JOIN events e ON e.id = x.event_id
+    WHERE x.email = $1 AND NOT x.cancelled AND e.starts_at > now() AND e.status = 'scheduled' ORDER BY e.starts_at`, [req.person.email]);
+  res.render('my/home', { title: 'Your applications', apps, tab, presentations, registrations, E: require('../domain/events'), P });
 });
 
 r.get('/my/new', (req, res) => res.render('my/new', { title: 'New application', error: null, kinds: Q.KINDS, chosen: [].concat(req.query.kind || []) }));
@@ -78,7 +88,9 @@ r.get('/my/a/:ref', async (req, res) => {
   });
   const messages = await db.many(`SELECT m.*, p.name AS author_name, p.staff_role FROM messages m LEFT JOIN people p ON p.id = m.author_id
     WHERE m.application_id = $1 AND NOT m.internal ORDER BY m.created_at`, [app.id]);
-  res.render('my/application', { title: `${app.venture_name} · ${app.ref}`, app, sections, ready, docs, messages, editable: W.editable(app.status), kinds: Q.KINDS, notice: req.query.n || null });
+  const counts = await P.counts(app.id);
+  const upcoming = (await P.meetingsOf(app.id)).filter((m) => ['proposed', 'accepted', 'reschedule'].includes(m.status) && new Date(m.starts_at) > new Date());
+  res.render('my/application', { title: `${app.venture_name} · ${app.ref}`, app, sections, ready, docs, messages, counts, upcoming, P, tab: 'overview', editable: W.editable(app.status), kinds: Q.KINDS, notice: req.query.n || null });
 });
 
 r.post('/my/a/:ref/kinds', async (req, res) => {
@@ -206,6 +218,62 @@ r.post('/my/a/:ref/message', async (req, res) => {
     await audit(req.person.id, app.id, 'message', null);
   }
   res.redirect(`/my/a/${app.ref}#messages`);
+});
+
+// ── The portal: meetings, follow-ups and requested documents ──
+r.get('/my/a/:ref/meetings', async (req, res) => {
+  const app = await mine(req);
+  res.render('my/meetings', { title: `Meetings · ${app.venture_name}`, app, meetings: await P.meetingsOf(app.id), counts: await P.counts(app.id), P, tab: 'meetings',
+    notice: req.query.n || null, error: req.query.e || null });
+});
+r.post('/my/a/:ref/meetings/:id/reply', async (req, res) => {
+  const app = await mine(req);
+  try { await P.reply(app, req.person, req.params.id, req.body); } catch (e) {
+    if (!e.status || e.status >= 500) throw e;
+    return res.redirect(`/my/a/${app.ref}/meetings?e=${encodeURIComponent(e.message)}`);
+  }
+  res.redirect(`/my/a/${app.ref}/meetings?n=replied`);
+});
+r.get('/my/a/:ref/meetings/:id/invite.ics', async (req, res) => {
+  const app = await mine(req);
+  const m = await P.meeting(app, req.params.id);
+  res.set('Content-Type', 'text/calendar; charset=utf-8').set('Content-Disposition', 'attachment; filename="ventureos-meeting.ics"').send(P.ics(m, app));
+});
+r.get('/my/a/:ref/followups', async (req, res) => {
+  const app = await mine(req);
+  const { actions, requests } = await P.followupsOf(app.id);
+  res.render('my/followups', { title: `Follow-ups · ${app.venture_name}`, app, actions, requests, counts: await P.counts(app.id), tab: 'followups', error: req.query.e || null });
+});
+r.post('/my/a/:ref/actions/:id', async (req, res) => {
+  const app = await mine(req);
+  await P.setActionDone(app, req.person, req.params.id, req.body.done === 'yes');
+  res.redirect(`/my/a/${app.ref}/followups`);
+});
+r.post('/my/a/:ref/requests/:id/upload', upload.single('file'), async (req, res) => {
+  const app = await mine(req);
+  const f = req.file;
+  try {
+    if (W.STATUSES[app.status].final) throw Object.assign(new Error('This application is closed.'), { status: 409 });
+    const rq = await db.one(`SELECT * FROM document_requests WHERE id = $1 AND application_id = $2 AND status IN ('open','received')`, [req.params.id, app.id]);
+    if (!rq) throw Object.assign(new Error('That request is closed.'), { status: 409 });
+    if (!f) throw Object.assign(new Error('Choose a file to upload.'), { status: 400 });
+    const dir = path.join(config.uploadsDir, app.id);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.renameSync(f.path, path.join(dir, f.filename));
+    await db.query(`INSERT INTO documents (application_id, doc_type, filename, stored_name, mime, size, uploaded_by, request_id) VALUES ($1,'requested',$2,$3,$4,$5,$6,$7)`,
+      [app.id, f.originalname.slice(0, 200), f.filename, f.mimetype, f.size, req.person.id, rq.id]);
+    await db.query(`UPDATE document_requests SET status = 'received' WHERE id = $1`, [rq.id]);
+    await audit(req.person.id, app.id, 'request.uploaded', { id: rq.id, name: f.originalname });
+    for (const a of await db.many(`SELECT DISTINCT email FROM people WHERE staff_role = 'admin' OR id = $1`, [rq.created_by])) {
+      await mail.send({ to: a.email, subject: `Requested document received: ${rq.title} — ${app.venture_name} (${app.ref})`, lines: [`${app.venture_name} uploaded ${f.originalname}.`],
+        link: { label: 'Open the application', url: `${config.baseUrl}/staff/a/${app.ref}#followups` } });
+    }
+    res.redirect(`/my/a/${app.ref}/followups`);
+  } catch (e) {
+    if (f && fs.existsSync(f.path)) fs.unlinkSync(f.path);
+    if (!e.status) throw e;
+    res.redirect(`/my/a/${app.ref}/followups?e=${encodeURIComponent(e.message)}`);
+  }
 });
 
 r.get('/my/tab/:venture', async (req, res) => {

@@ -4,7 +4,27 @@ ScaleGate Africa's application and selection platform for the **VentureOS Center
 ventures seeking **equity, debt or grant** funding through ScaleGate. Its own app, its own sign-in and its own
 PostgreSQL database on the Lagos server.
 
-## What it does
+## The website
+
+The **front page** presents the programme: announcements of the **monthly investment presentations and meetups**
+(register to attend, or submit a venture to present), **cohorts** (e.g. Cohort 0, mid-2027) and **campuses** (the
+VentureOS Center in Lagos as designed), what VentureOS is about (Make, Grow, Create and its principles), the
+**projects that interest ScaleGate**, and how to apply. Staff edit all of it without code changes: *Events*,
+*Cohorts* (tick "show on the front page") and *Front page* (projects and campuses).
+
+**Events.** Staff announce a presentation evening or meetup (date, venue, online link, places, presenting slots,
+closing date for submissions) and can copy it to the same weekday of next month. Anyone registers to attend (no
+account needed; a link in the confirmation email cancels their place). Founders sign in to submit a venture to
+present, optionally linked to their application, with a deck; staff shortlist and select presenters, who are
+emailed with their slot. Registrations download as a spreadsheet.
+
+**The applicant portal.** For each application the founder has: the application itself; **Meetings** — invitations
+from ScaleGate (first meeting, follow-ups, interview, due diligence, site visit; in person, video or phone) with a
+calendar invitation, which they accept, decline or ask to move, and a reminder the day before; **Follow-ups and
+requested documents** — next steps agreed at meetings (theirs and ScaleGate's) and documents ScaleGate asks for,
+uploaded against each request; and **Messages**. After a meeting staff record a summary for the founder, internal
+notes, and the agreed actions and documents in one go; the founder is emailed the follow-up.
+
 
 **Two parts.** Founders first send a short **initial submission** (Part 1): the venture, founders, problem and
 market, traction and what they are asking for — for equity, the valuation with its method and workings; for debt,

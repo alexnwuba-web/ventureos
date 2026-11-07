@@ -1,53 +1,147 @@
 <%- include('../partials/head') %>
+<%
+  const applyUrl = person ? '/my/new' : '/signin?next=/my/new';
+  const campusStatus = { design: 'In design', renovation: 'Under renovation', open: 'Open', planned: 'Planned' };
+  const cohortStatus = { planned: 'Coming soon — apply now', open: 'Applications open', running: 'Under way' };
+  const pillarName = { make: 'Make', grow: 'Grow', create: 'Create', scalegate: 'ScaleGate' };
+%>
 <section class="hero">
   <div class="wrap">
-    <p class="small" style="letter-spacing:.12em;text-transform:uppercase;color:#c8a14a;margin:0 0 10px">VentureOS Center · Lagos</p>
+    <p class="eyebrow" style="color:#c8a14a">ScaleGate Africa · Lagos · The Hague</p>
     <h1>Make. Grow. <em>Create.</em></h1>
-    <p>Africa's real problems and Africa's real culture, built into businesses the world will buy. Apply for a place in the VentureOS Center, or for equity, debt or grant funding through ScaleGate Africa — with a route to Europe through ScaleGate in The Hague.</p>
-    <p style="margin-top:24px"><a class="btn gold" href="<%= person ? '/my/new' : '/signin?next=/my/new' %>">Start an application</a>
-      <% if (!person) { %>&nbsp; <a class="btn ghost" href="/signin">Sign in</a><% } %></p>
+    <p>Africa's real problems and Africa's real culture, built into businesses the world will buy. VentureOS is ScaleGate Africa's venture programme: a live-work-build campus in Lagos, cohorts of founders from across Africa, and investment and a route into Europe through ScaleGate in The Hague.</p>
+    <p style="margin-top:24px"><a class="btn gold" href="<%= applyUrl %>">Apply</a> &nbsp; <a class="btn ghost" href="#events">Presentations and meetups</a> &nbsp; <a class="btn ghost" href="#cohorts">Cohorts and campuses</a></p>
   </div>
 </section>
-<div class="wrap">
-  <div class="grid g3">
-    <div class="card pillar make"><h3>Make</h3><p class="muted">Water, energy, petroleum and petrochemicals, waste-to-value, cooling and the built environment, health diagnostics.</p></div>
-    <div class="card pillar grow"><h3>Grow</h3><p class="muted">Production, processing and storage, natural and organic farming, packaged Nigerian food and packaging for export.</p></div>
-    <div class="card pillar create"><h3>Create</h3><p class="muted">Fashion, music, art, authorship and publishing, theatre, stage and screen production, media, design and tourism.</p></div>
-  </div>
 
-  <h2 id="apply">What you can apply for</h2>
-  <p class="muted">One application can ask for more than one of these — for example a residency and equity together. You can save and come back at any time.</p>
-  <div class="grid g2">
-    <% for (const [k, v] of Object.entries(kinds)) { %>
-      <a class="card kindcard" href="<%= person ? '/my/new?kind=' + k : '/signin?next=' + encodeURIComponent('/my/new?kind=' + k) %>">
-        <h3><%= v.label %></h3><p class="muted" style="margin:0"><%= v.blurb %></p>
-      </a>
+<section class="section" id="events" style="padding-top:10px">
+  <div class="wrap">
+    <p class="eyebrow">Every month</p>
+    <div class="row between"><h2 style="margin:0">Investment presentations and meetups</h2><a class="small" href="/events">All dates →</a></div>
+    <p class="lead">Each month selected founders present to investors, and the VentureOS community — founders, investors, industry and government — meets in Lagos. Register to attend, or submit your venture to present.</p>
+    <% if (!events.length) { %><div class="card muted">The next dates will be announced here soon.</div><% } else { %>
+      <div class="grid <%= events.length > 1 ? 'g2' : '' %>" style="margin-top:16px"><% for (const e of events.slice(0, 4)) { %><%- include('../events/_card', { e, E, P }) %><% } %></div>
     <% } %>
   </div>
+</section>
 
-  <h2>What we will ask for</h2>
-  <p class="muted">Most of the detail below is asked for only in the full documentation, after we have invited you to proceed.</p>
-  <div class="grid g2">
-    <div class="card">
-      <h3>Every application</h3>
-      <p class="muted">The venture and its founders, the problem from the user's side, your solution and market (with the numbers), your evidence so far, IP ownership and any legal matters.</p>
-      <h3>Residency</h3>
-      <p class="muted" style="margin-bottom:0">Your challenge track, a 2-minute video, where you would do problem immersion, what will exist at the end, and the facilities you need. Make founders show technical depth, Grow founders real value-chain experience, Create founders a portfolio.</p>
-    </div>
-    <div class="card">
-      <h3>Equity</h3>
-      <p class="muted">The raise and the valuation — and the <b>basis</b> of the valuation: the method, the workings, comparables and your downside case. Your cap table, use of funds, governance and how investors exit.</p>
-      <h3>Debt</h3>
-      <p class="muted" style="margin-bottom:0">Purpose, tenor and repayment; where repayment comes from; three years of results, 12 months of bank statements; existing loans and credit history; security and guarantees.</p>
+<% if (cohorts.length) { %>
+<section class="section" id="cohorts">
+  <div class="wrap">
+    <p class="eyebrow">Announcements</p>
+    <h2 style="margin-top:0">Cohorts</h2>
+    <div class="grid <%= cohorts.length > 1 ? 'g2' : '' %>">
+      <% for (const c of cohorts) { %>
+        <div class="card announce">
+          <div class="row between"><h3 style="margin:0"><%= c.name %></h3><span class="badge <%= c.status === 'open' ? 'green' : c.status === 'running' ? 'blue' : 'amber' %>"><%= cohortStatus[c.status] %></span></div>
+          <p class="when" style="margin:10px 0 4px"><%= c.starts_on ? 'Starts ' + date(c.starts_on) : (c.timing || 'Dates to be announced') %></p>
+          <p class="small muted" style="margin:0 0 10px">
+            <%= c.campus_name ? c.campus_name + (c.campus_city ? ', ' + c.campus_city : '') : '' %><%= c.size_target ? ' · ' + c.size_target + ' places' : '' %>
+            <% if (c.opens_on || c.closes_on) { %> · applications <%= c.opens_on ? 'open ' + date(c.opens_on) : '' %><%= c.closes_on ? ' close ' + date(c.closes_on) : '' %><% } %>
+          </p>
+          <% if (c.announcement) { %><p style="margin:0 0 14px"><%= c.announcement %></p><% } %>
+          <% if (c.status !== 'running') { %><a class="btn" href="<%= person ? '/my/new?kind=residency' : '/signin?next=' + encodeURIComponent('/my/new?kind=residency') %>">Apply for <%= c.name %></a><% } %>
+        </div>
+      <% } %>
     </div>
   </div>
+</section>
+<% } %>
 
-  <h2>How selection works</h2>
-  <ol class="steps">
-    <li><span class="n">1</span><div><b>Initial submission</b><div class="muted small">Tell us about the venture and what you are asking for, with your pitch deck and business plan. It takes an hour or two.</div></div></li>
-    <li><span class="n">2</span><div><b>Screening, then full documentation by invitation</b><div class="muted small">If we would like to proceed, we invite you to send the full documentation: financial statements, tax returns, the business background questionnaire and the rest. Two independent reviewers then assess it; they declare any conflict of interest and never score people they know.</div></div></li>
-    <li><span class="n">3</span><div><b>Challenge task or due diligence</b><div class="muted small">A 1–2 week practical challenge for residencies; due diligence for funding.</div></div></li>
-    <li><span class="n">4</span><div><b>Interview and committee</b><div class="muted small">The committee balances pillars and countries and makes the decision.</div></div></li>
-  </ol>
-</div>
+<section class="section" id="about">
+  <div class="wrap">
+    <p class="eyebrow">The programme</p>
+    <h2 style="margin-top:0">About VentureOS</h2>
+    <p class="lead">VentureOS began as a gathering of tech minds in Lagos. It is now ScaleGate Africa's venture programme, and the name of the campus where its cohorts live and build. It brings founders, investors, industry and government together around ventures that solve real problems and can sell beyond Africa.</p>
+    <div class="grid g3" style="margin-top:20px">
+      <div class="card"><h3>The VentureOS Center</h3><p class="muted" style="margin:0">A 6–12 month residency in Lagos for 12–20 innovators per cohort: housing, labs, studios and mentors, moving from problem immersion to prototype, pilot and a company.</p></div>
+      <div class="card"><h3>VentureOS meetings</h3><p class="muted" style="margin:0">Regular gatherings in Lagos where founders meet ScaleGate, investors and partners — the front door to everything else in the programme.</p></div>
+      <div class="card"><h3>Investment and Europe</h3><p class="muted" style="margin:0">Equity, debt and grant funding arranged through ScaleGate, and a soft landing in Europe through ScaleGate's headquarters in The Hague for ventures proven in Lagos.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="what">
+  <div class="wrap">
+    <p class="eyebrow">What we are about</p>
+    <h2 style="margin-top:0">Physical and cultural frontiers, not only apps</h2>
+    <p class="lead">Most young African entrepreneurs equate innovation with software. We point founders at the physical and cultural frontiers where Africa has the biggest gaps and the strongest global pull — and every cohort mixes all three pillars.</p>
+    <div class="grid g3" style="margin-top:20px">
+      <div class="card pillar make"><h3>Make</h3><p class="muted" style="margin:0">Water, energy, petroleum and petrochemicals, waste-to-value, cooling and the built environment, health diagnostics.</p></div>
+      <div class="card pillar grow"><h3>Grow</h3><p class="muted" style="margin:0">Production, processing and storage, natural and organic farming, packaged Nigerian food and packaging for export.</p></div>
+      <div class="card pillar create"><h3>Create</h3><p class="muted" style="margin:0">Fashion, music, art, authorship and publishing, theatre, stage and screen production, media, design and tourism.</p></div>
+    </div>
+    <ul class="principles" style="margin-top:22px">
+      <li><b>Founders own their IP.</b> The center helps register patents, designs and copyright.</li>
+      <li><b>No upfront fees for residents.</b> Carrying costs run on an innovator tab owed by the venture, repaid from revenue — and forgiven if there is none within three years.</li>
+      <li><b>Prove it in Lagos.</b> Solutions are tested in the hardest operating conditions, with real users and partners in the field.</li>
+      <li><b>Pillars feed each other.</b> Natural dyes for fashion, farm waste to biogas, creatives who tell the story of every product.</li>
+    </ul>
+  </div>
+</section>
+
+<% if (campuses.length) { %>
+<section class="section" id="campuses">
+  <div class="wrap">
+    <p class="eyebrow">Campuses</p>
+    <h2 style="margin-top:0"><%= campuses.length > 1 ? 'Our campuses' : 'The campus' %></h2>
+    <% for (const k of campuses) { %>
+      <div class="card campus">
+        <div>
+          <div class="row"><h3 style="margin:0"><%= k.name %><%= k.city ? ', ' + k.city : '' %></h3><span class="badge amber"><%= campusStatus[k.status] || k.status %></span></div>
+          <p style="margin:12px 0"><%= k.summary %></p>
+          <% if (k.capacity) { %><p class="small muted" style="margin:0 0 4px"><b>Capacity:</b> <%= k.capacity %></p><% } %>
+          <% if (k.opens) { %><p class="small muted" style="margin:0"><b>Opening:</b> <%= k.opens %></p><% } %>
+        </div>
+        <% if (k.spaces) { %>
+          <div class="side"><h3 style="margin-top:0">As designed</h3><ul class="small"><% for (const l of k.spaces.split(/\r?\n/).filter(Boolean)) { %><li><%= l %></li><% } %></ul></div>
+        <% } %>
+      </div>
+    <% } %>
+  </div>
+</section>
+<% } %>
+
+<% if (interests.length) { %>
+<section class="section" id="projects">
+  <div class="wrap">
+    <p class="eyebrow">ScaleGate Africa</p>
+    <h2 style="margin-top:0">Projects that interest us</h2>
+    <p class="lead">If you are working on one of these, we want to hear from you — whether you are an innovator looking for a residency or an established business looking for investment.</p>
+    <div class="grid g3" style="margin-top:20px">
+      <% for (const i of interests) { %>
+        <div class="card interest">
+          <% if (i.pillar) { %><span class="badge <%= i.pillar %>"><%= pillarName[i.pillar] %></span><% } %>
+          <h3><%= i.title %></h3>
+          <p class="muted small" style="margin:0"><%= i.body %></p>
+          <% if (i.support) { %><div class="support"><%= i.support %></div><% } %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<section class="section" id="apply">
+  <div class="wrap">
+    <p class="eyebrow">Applications</p>
+    <h2 style="margin-top:0">Apply</h2>
+    <p class="lead">One application can ask for more than one of these — for example a residency and equity together. Save as you go; nothing is sent until you press Send.</p>
+    <div class="grid g2" style="margin-top:16px">
+      <% for (const [k, v] of Object.entries(kinds)) { %>
+        <a class="card kindcard" href="<%= person ? '/my/new?kind=' + k : '/signin?next=' + encodeURIComponent('/my/new?kind=' + k) %>">
+          <h3><%= v.label %></h3><p class="muted" style="margin:0"><%= v.blurb %></p>
+        </a>
+      <% } %>
+    </div>
+    <h3>How it works</h3>
+    <ol class="steps">
+      <li><span class="n">1</span><div><b>Initial submission</b><div class="muted small">Tell us about the venture and what you are asking for, with your pitch deck and business plan. For equity, show how you arrived at your valuation.</div></div></li>
+      <li><span class="n">2</span><div><b>Screening and a first meeting</b><div class="muted small">If we would like to proceed, we invite you to meet us — in person at our Victoria Island office or by video — through your VentureOS portal.</div></div></li>
+      <li><span class="n">3</span><div><b>Full documentation</b><div class="muted small">Financial statements, tax returns, the business background questionnaire and the rest, plus any follow-up documents agreed at our meetings.</div></div></li>
+      <li><span class="n">4</span><div><b>Review, challenge or due diligence, committee</b><div class="muted small">Two independent reviewers who declare any conflict of interest; a practical challenge for residencies or due diligence for funding; then the committee decides.</div></div></li>
+    </ol>
+    <p style="margin-top:20px"><a class="btn gold" href="<%= applyUrl %>">Start an application</a> <% if (!person) { %>&nbsp; <a href="/signin">Already applied? Sign in to your portal</a><% } %></p>
+  </div>
+</section>
 <%- include('../partials/foot') %>

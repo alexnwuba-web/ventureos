@@ -2,11 +2,19 @@
 const express = require('express');
 const auth = require('../auth');
 const Q = require('../domain/questions');
+const { db } = require('../db');
 
 const r = express.Router();
 const safeNext = (n) => (typeof n === 'string' && n.startsWith('/') && !n.startsWith('//') ? n : '');
 
-r.get('/', (req, res) => res.render('public/home', { title: 'VentureOS — Make. Grow. Create.', kinds: Q.KINDS, tracks: Q.TRACKS }));
+r.get('/', async (req, res) => {
+  const interests = await db.many('SELECT * FROM interests WHERE visible ORDER BY sort, title');
+  const campuses = await db.many('SELECT * FROM campuses WHERE visible ORDER BY sort, name');
+  const cohorts = await db.many(`SELECT c.*, k.name AS campus_name, k.city AS campus_city FROM cohorts c LEFT JOIN campuses k ON k.id = c.campus_id
+    WHERE c.public AND c.status IN ('planned','open','running') ORDER BY (c.status = 'open') DESC, c.starts_on NULLS LAST, c.created_at`);
+  const E = require('../domain/events');
+  res.render('public/home', { title: 'VentureOS — Make. Grow. Create.', kinds: Q.KINDS, interests, campuses, cohorts, events: await E.upcoming(), E, P: require('../domain/portal') });
+});
 
 r.get('/signin', (req, res) => {
   if (req.person) return res.redirect(safeNext(req.query.next) || (req.staff ? '/staff' : '/my'));

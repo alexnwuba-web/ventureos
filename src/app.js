@@ -51,6 +51,7 @@ function createApp() {
   app.use(wrap(require('./routes/public')));
   app.use(wrap(require('./routes/my')));
   app.use(wrap(require('./routes/staff')));
+  app.use(wrap(require('./routes/events')));
 
   app.get('/health', (req, res) => res.json({ ok: true, app: 'ventureos' }));
 
