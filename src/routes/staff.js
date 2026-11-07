@@ -33,7 +33,7 @@ async function settings() {
 /** The application, if this staff member may see it. */
 async function visible(req) {
   const app = await A.byRef(req.params.ref);
-  if (!app) throw err(404, 'That application was not found.');
+  if (!app || (app.vetoed && req.staff !== 'admin')) throw err(404, 'That application was not found.');
   if (req.staff === 'reviewer') {
     const asg = await db.one('SELECT * FROM assignments WHERE application_id = $1 AND reviewer_id = $2', [app.id, req.person.id]);
     if (!asg) throw err(403, 'This application is not assigned to you.');
@@ -47,6 +47,8 @@ async function visible(req) {
 r.get('/staff', async (req, res) => {
   const where = ["a.status <> 'draft'"];
   const params = [];
+  // Vetoed ventures leave the active list; only administrators can see them, on request.
+  where.push(req.staff === 'admin' && req.query.vetoed === '1' ? 'a.vetoed' : 'NOT a.vetoed');
   if (req.staff === 'reviewer') { params.push(req.person.id); where.push(`EXISTS (SELECT 1 FROM assignments x WHERE x.application_id = a.id AND x.reviewer_id = $${params.length})`); }
   if (req.query.status) { params.push(req.query.status); where.push(`a.status = $${params.length}`); }
   if (req.query.kind) { params.push(req.query.kind); where.push(`$${params.length} = ANY(a.kinds)`); }
@@ -71,7 +73,7 @@ r.get('/staff/a/:ref', async (req, res) => {
   const analysis = analyse(app, answers, await settings());
   const assignments = await db.many(`SELECT x.*, p.name, p.email FROM assignments x JOIN people p ON p.id = x.reviewer_id WHERE x.application_id = $1 ORDER BY x.created_at`, [app.id]);
   let reviews = await db.many(`SELECT rv.*, p.name AS reviewer_name FROM reviews rv JOIN people p ON p.id = rv.reviewer_id WHERE rv.application_id = $1 ORDER BY rv.submitted_at NULLS LAST`, [app.id]);
-  const rubrics = app.kinds.map((k) => k);
+  const rubrics = S.rubricsFor(app);
   const mine = reviews.filter((rv) => rv.reviewer_id === req.person.id);
   // Independent review: a reviewer sees others' scores only after sending their own.
   const sentMine = mine.length && mine.every((rv) => rv.submitted_at) && mine.length >= rubrics.length;
@@ -149,7 +151,7 @@ r.post('/staff/a/:ref/review', async (req, res) => {
   const app = await visible(req);
   if (!app.assignment || app.assignment.conflict !== 'none') throw err(403, 'Declare that you have no conflict of interest before scoring.');
   const rubric = String(req.body.rubric || '');
-  if (!app.kinds.includes(rubric) || !S.RUBRICS[rubric]) throw err(400, 'Unknown rubric.');
+  if (!S.rubricsFor(app).includes(rubric) || !S.RUBRICS[rubric]) throw err(400, 'Unknown rubric.');
   const existing = await db.one('SELECT * FROM reviews WHERE application_id = $1 AND reviewer_id = $2 AND rubric = $3', [app.id, req.person.id, rubric]);
   if (existing && existing.submitted_at) throw err(409, 'You have already sent this review.');
   const scores = {};
@@ -161,6 +163,7 @@ r.post('/staff/a/:ref/review', async (req, res) => {
   const send = req.body.send === 'yes';
   const recommendation = ['advance', 'hold', 'decline'].includes(req.body.recommendation) ? req.body.recommendation : null;
   if (send && (total === null || !recommendation)) throw err(400, 'Score every criterion and choose a recommendation before sending.');
+  if (send && rubric === 'triage' && scores.traction > 3 && String(req.body.comments || '').trim().length < 20) throw err(400, 'A traction score above 3 needs the evidence noted in your comments.');
   await db.query(`INSERT INTO reviews (application_id, reviewer_id, rubric, scores, total, recommendation, comments, submitted_at, updated_at)
     VALUES ($1,$2,$3,$4,$5,$6,$7, CASE WHEN $8 THEN now() END, now())
     ON CONFLICT (application_id, reviewer_id, rubric) DO UPDATE SET scores = EXCLUDED.scores, total = EXCLUDED.total, recommendation = EXCLUDED.recommendation,
@@ -198,6 +201,15 @@ r.post('/staff/a/:ref/cohort', requireStaff('admin'), async (req, res) => {
   await db.query('UPDATE applications SET cohort_id = $2 WHERE id = $1', [app.id, req.body.cohort || null]);
   await audit(req.person.id, app.id, 'cohort', { cohort: req.body.cohort || null });
   res.redirect(`/staff/a/${app.ref}`);
+});
+
+// ── The integrity veto: no reason is asked for or recorded ──
+r.post('/staff/a/:ref/veto', requireStaff('admin'), async (req, res) => {
+  const app = await visible(req);
+  const on = req.body.on === 'yes';
+  await db.query('UPDATE applications SET vetoed = $2, vetoed_at = CASE WHEN $2 THEN now() END WHERE id = $1', [app.id, on]);
+  await audit(req.person.id, app.id, on ? 'veto.set' : 'veto.lifted', null);
+  res.redirect(on ? '/staff' : `/staff/a/${app.ref}`);
 });
 
 // ── Meetings, follow-ups and document requests ──

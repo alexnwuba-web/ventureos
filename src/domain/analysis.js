@@ -198,6 +198,56 @@ function analyse(app, answers, settings = {}) {
     if (answers.pillar === 'none') flag('amber', 'Fit', 'The venture does not sit in Make, Grow or Create. Software is admitted only when it serves a physical or creative problem.');
   }
 
+  // ── Pricing on future profit (the P8 test): post-money as a multiple of each projected year's EBITDA ──
+  if (kinds.includes('equity') && metrics.post_money) {
+    const pj = rows(answers.projections);
+    const multiples = [0, 1, 2].map((i) => { const e = num((pj[i] || {}).ebitda); return e && e > 0 ? metrics.post_money / e : null; });
+    if (multiples.some((x) => x != null)) {
+      metrics.post_on_projected_ebitda = multiples;
+      if (multiples[0] != null && multiples[0] > 20 && multiples[2] != null && multiples[2] < 6) {
+        flag('amber', 'Valuation', `Priced on future profit: ${multiples[0].toFixed(0)}× Year 1 EBITDA but ${multiples[2].toFixed(1)}× Year 3, and Year 3 depends on the money being raised.`);
+      }
+    }
+    if (answers.val_tranches === 'no') flag('info', 'Valuation', 'Will not consider milestone tranches or a valuation adjustment.');
+  }
+
+  // ── Trading evidence: invoiced against paid, and against what was declared ──
+  const ms = rows(answers.monthly_sales).filter((r) => num(r.invoiced) != null || num(r.paid) != null);
+  if (ms.length) {
+    const inv = sum(ms, 'invoiced'), paid = sum(ms, 'paid');
+    metrics.invoiced_12m = inv; metrics.paid_12m = paid;
+    if (inv > 0) {
+      metrics.collection_rate = paid / inv;
+      if (metrics.collection_rate < 0.8) flag('amber', 'Trading', `Only ${(metrics.collection_rate * 100).toFixed(0)}% of invoiced sales were paid in the last 12 months.`);
+    }
+    const declared = num(answers.revenue_12m);
+    if (declared && inv && Math.abs(declared - inv) / declared > 0.25) flag('amber', 'Trading', `Revenue declared for the last 12 months (${fmt(declared)}) differs from the invoices listed (${fmt(inv)}).`);
+    if (ms.length < 12 && kinds.some((k) => k === 'equity' || k === 'debt')) flag('info', 'Trading', `Sales given for ${ms.length} of the last 12 months.`);
+  }
+  const custs = rows(answers.customers);
+  const topShare = Math.max(0, ...custs.map((c) => num(c.share) || 0));
+  if (topShare > 40 && !kinds.includes('debt')) flag('amber', 'Concentration', `${topShare}% of revenue comes from one customer.`);
+  const unsigned = rows(answers.agreements).filter((a) => a.signed && !/^yes/i.test(a.signed));
+  if (unsigned.length) flag('amber', 'Structure', `Key agreement${unsigned.length > 1 ? 's' : ''} not signed: ${unsigned.map((a) => a.counterparty || a.what || '—').join(', ')}.`);
+  if (String(answers.group || '').trim().length > 20 && kinds.includes('equity')) flag('info', 'Structure', 'The business depends on related companies the investor would not own: check the mandate or agreements are the real asset, and that they survive a sale.');
+  const pending = rows(answers.approvals).filter((a) => /applied|not yet/i.test(a.status || ''));
+  if (pending.length && String(answers.unapproved_sales || '').trim()) flag('amber', 'Regulatory', `${pending.length} product approval${pending.length > 1 ? 's are' : ' is'} pending, and products are sold before approval.`);
+
+  // ── Development history and IP (the Bala Elisha questions) ──
+  if (answers.independent_test === 'no') flag('red', 'Evidence', 'Will not allow an independent test of the product.');
+  else if (answers.independent_test === 'with_conditions') flag('info', 'Evidence', 'Will allow an independent test only with conditions.');
+  if (['idea', 'prototype'].includes(answers.stage) && String(answers.evidence || '').trim().length < 40) flag('amber', 'Evidence', 'Little or no measured evidence that it works as claimed.');
+  if (/\b(loan|lent|borrow|relative|family|uncle|aunt|brother|sister)\b/i.test(`${answers.funded_by || ''} ${answers.helpers || ''}`)) {
+    flag('info', 'IP', 'Funded or helped by family or lenders: confirm in writing that they have no claim on shares or IP.');
+  }
+  if (answers.prior_agreements === 'yes') flag('amber', 'Legal', 'Earlier agreements, NDAs or memoranda exist: check they do not restrict a deal.');
+  if (String(answers.other_offers || '').trim().length > 10) flag('info', 'Deal', 'Other parties have offered to invest, buy or license.');
+
+  // ── The wider deal and ScaleGate's role ──
+  if (answers.programme === 'yes') flag('info', 'Deal', 'Part of a larger programme or co-financing: confirm what is committed and the size of the gap.');
+  if (/exclusiv/i.test(answers.other_advisers || '')) flag('amber', 'Deal', 'Another adviser or arranger may hold an exclusive mandate.');
+  if (answers.mandate === 'yes') flag('info', 'Deal', 'Wants ScaleGate to raise or structure the funding: a signed engagement letter and fee basis come before any work.');
+
   // ── Projections against history ──
   const proj = rows(answers.projections);
   if (proj.length && revenue) {

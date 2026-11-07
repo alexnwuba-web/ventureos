@@ -31,4 +31,21 @@ function answerText(f, v) {
   return String(v);
 }
 
-module.exports = { esc, money, full, date, when, status, kindLabel, pillarLabel, answerText, KINDS: Q.KINDS, STATUSES: W.STATUSES };
+/** The date an answer is due: ten working days (Monday to Friday) after sending. */
+function answerDue(from, days = 10) {
+  if (!from) return null;
+  const d = new Date(from); let n = 0;
+  while (n < days) { d.setUTCDate(d.getUTCDate() + 1); const w = d.getUTCDay(); if (w !== 0 && w !== 6) n++; }
+  return d;
+}
+/** Working days elapsed since a date. */
+function workingDaysSince(from) {
+  if (!from) return 0;
+  const d = new Date(from), now = new Date(); let n = 0;
+  while (d < now) { d.setUTCDate(d.getUTCDate() + 1); if (d > now) break; const w = d.getUTCDay(); if (w !== 0 && w !== 6) n++; }
+  return n;
+}
+/** Statuses on the ten-working-day clock (the initial submission waiting for an answer). */
+const onClock = (a) => ['submitted', 'screening'].includes(a.status) && (a.stage || 1) === 1;
+
+module.exports = { answerDue, workingDaysSince, onClock, esc, money, full, date, when, status, kindLabel, pillarLabel, answerText, KINDS: Q.KINDS, STATUSES: W.STATUSES };

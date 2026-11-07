@@ -325,6 +325,12 @@
     </div>
 
     <aside class="noprint">
+      <% if (onClock(app)) { const wd = workingDaysSince(app.submitted_at); %>
+        <div class="notice <%= wd >= 10 ? 'err' : wd >= 7 ? 'warn' : '' %>">Answer due to the founder by <b><%= date(answerDue(app.submitted_at)) %></b> (working day <%= wd %> of 10).</div>
+      <% } %>
+      <% if (isAdmin) { %>
+        <% if (app.vetoed) { %><div class="notice err">Vetoed — out of the active list.<form method="post" action="/staff/a/<%= app.ref %>/veto"><input type="hidden" name="on" value="no"><button class="linkbtn small" type="submit">Lift the veto</button></form></div><% } %>
+      <% } %>
       <% if (app.assignment && !app.assignment.conflict) { %>
         <div class="card" style="border-color:var(--gold)">
           <h3>Conflict of interest</h3>
@@ -378,6 +384,10 @@
         </div>
       <% } %>
 
+      <% if (isAdmin && !app.vetoed) { %>
+        <div class="card small"><h3>Integrity veto</h3><p class="muted">Takes the venture out of the active list. Visible only to administrators. No reason is asked for or recorded.</p>
+          <form method="post" action="/staff/a/<%= app.ref %>/veto" data-confirm="Veto this venture?"><input type="hidden" name="on" value="yes"><button class="btn small danger" type="submit">Veto</button></form></div>
+      <% } %>
       <% if (staff !== 'reviewer' && (app.status === 'accepted' || app.kinds.includes('residency'))) { %>
         <div class="card small"><h3>Innovator tab</h3><a href="/staff/tab/<%= app.venture_id %>">Open the tab for this venture</a></div>
       <% } %>

@@ -4,6 +4,17 @@
  * selection criteria in the VentureOS Center planning document; funding requests use the rubric for their kind.
  */
 const RUBRICS = {
+  // ScaleGate triage, from the VentureOS Platform Implementation Plan (B4.4). Integrity is a veto, not a weight.
+  triage: {
+    label: 'ScaleGate triage',
+    criteria: [
+      { key: 'founder', label: 'Founder', weight: 30, guide: 'Commitment, ability and evidence of past building; note the evidence' },
+      { key: 'problem_fit', label: 'Problem fit', weight: 20, guide: 'A real problem in one of ScaleGate\'s sectors (food, water, energy, health)' },
+      { key: 'traction', label: 'Traction', weight: 20, guide: 'What exists and who uses or pays for it. A score above 3 needs the evidence noted in your comments' },
+      { key: 'europe', label: 'European leverage', weight: 15, guide: 'Why Europe, specifically: buyers, partners, capital or the founder\'s relocation' },
+      { key: 'scalability', label: 'Scalability', weight: 10, guide: 'Could grow well beyond where it is now' },
+    ],
+  },
   residency: {
     label: 'Residency selection',
     criteria: [
@@ -74,4 +85,7 @@ function summarise(reviews) {
     recommendations: done.reduce((m, r) => { m[r.recommendation] = (m[r.recommendation] || 0) + 1; return m; }, {}) };
 }
 
-module.exports = { RUBRICS, total, summarise };
+/** Which rubrics apply: triage always; then the residency rubric, and after the invitation the rubric for each request. */
+const rubricsFor = (app) => ['triage', ...app.kinds.filter((k) => k === 'residency' || app.stage === 2)];
+
+module.exports = { RUBRICS, total, summarise, rubricsFor };

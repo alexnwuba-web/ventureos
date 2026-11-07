@@ -9,18 +9,24 @@ after(end);
 
 const equityDebtAnswers = {
   venture: { venture_name: 'AquaPure', one_liner: 'Borehole water treatment for estates', registered: 'yes', legal_name: 'AquaPure Ltd', registration_country: 'Nigeria',
-    rc_number: 'RC123', hq_country: 'Nigeria', hq_city: 'Lagos', stage: 'early_revenue', pillar: 'make', sector: 'Water' },
+    rc_number: 'RC123', hq_country: 'Nigeria', hq_city: 'Lagos', year_started: '2021', stage: 'revenue', sg_sector: 'water', pillar: 'make', sector: 'Water' },
   team: { founders: [{ name: 'Ada Obi', role: 'CEO', email: 'ada@x.ng', ownership: '70', full_time: 'Yes', years: '8' }, { name: 'Tunde B', role: 'CTO', ownership: '30', full_time: 'Yes' }],
-    team_size: '6', track_record: 'Built two water plants', key_gaps: 'Finance director' },
-  problem: { problem: 'Sulphur gas in borehole water', who_suffers: 'Estate residents', alternatives: 'Bottled water', solution: 'Modular treatment',
+    team_size: '6', hours_per_week: '60', track_record: 'Built two water plants', key_gaps: 'Finance director' },
+  problem: { problem: 'Sulphur gas in borehole water costs estates N2m a year in bottled water', who_suffers: 'Estate residents', alternatives: 'Bottled water', solution: 'Modular treatment',
     differentiation: 'Cheaper', market_size: '4,000 estates x N600k', go_to_market: 'Estate managers' },
   traction: { proof_points: '12 installs', revenue_12m: '48,000,000' },
+  ambition: { five_years: 'In 500 estates', blocker: 'Working capital', help_needed: 'Equity and a lender' },
+  development: { helpers: 'My uncle lent us N2m in 2021', prior_agreements: 'no', evidence: 'Lab reports from 12 installations, H2S below 0.05 mg/L', independent_test: 'yes' },
+  funding_context: { raised_to_date: 'N10m from founders', programme: 'no', other_advisers: 'None', mandate: 'yes' },
+  structure: { investee: 'AquaPure Ltd', group: 'None', agreements: [{ counterparty: 'Estate Co', what: 'Supply', signed: 'In draft' }] },
+  trading: { monthly_sales: [{ month: 'Oct', invoiced: '4,000,000', paid: '2,000,000' }, { month: 'Sep', invoiced: '4,000,000', paid: '2,500,000' }],
+    invoicing_entity: 'AquaPure Ltd', customers: [{ name: 'Estate Co', share: '55' }], capacity: 'Two installs a week', input_costs: 'Passed on quarterly' },
   equity_ask: { eq_amount: '100,000,000', eq_currency: 'NGN', eq_instrument: 'ordinary', eq_pre_money: '400,000,000', eq_offered: '25' },
-  valuation: { val_methods: ['estimate'], val_workings: 'We believe the company is worth this because the team is strong, the market is very large and we have already installed twelve units for estates in Lagos.', val_assumptions: 'Growth', val_by: 'founders', val_justify: 'Strong team', val_downside: 'Slow sales' },
+  valuation: { val_today: 'Assets of N60m', val_year: 'Year 2', val_tranches: 'discuss', val_methods: ['estimate'], val_workings: 'We believe the company is worth this because the team is strong, the market is very large and we have already installed twelve units for estates in Lagos.', val_assumptions: 'Growth', val_by: 'founders', val_justify: 'Strong team', val_downside: 'Slow sales' },
   use_of_funds: { uof: [{ item: 'Units', amount: '60,000,000', when: 'M1' }, { item: 'Hiring', amount: '30,000,000', when: 'M3' }], milestones: '50 installs', runway_after: '9', next_round: 'Series A 2028' },
   cap_table: { cap: [{ holder: 'Ada', type: 'Founder', shares: '700', pct: '70' }, { holder: 'Tunde', type: 'Founder', shares: '300', pct: '30' }], sha_exists: 'no' },
   governance: { board: 'Two founders', independent_directors: '0', owner_manager: 'founder_ceo', accounts: 'management', reporting_ack: 'yes', board_seat: 'yes',
-    divestment: 'minority', conditions: 'Audit', exit: 'Trade sale' },
+    divestment: 'minority', conditions: 'Audit', exit: 'Trade sale', dividends: 'From year 4', management: [{ role: 'CEO', name: 'Ada Obi', in_post: 'Yes' }] },
   financials: { fin_currency: 'NGN', fin_year_end: 'December', fin_history: [{ revenue: '40,000,000', ebitda: '8,000,000' }, {}, {}], cash_balance: '5,000,000', monthly_burn: '3,000,000',
     tax_current: 'yes', projections: [{ revenue: '80000000' }, { revenue: '150000000' }, { revenue: '300000000' }, {}, {}], projection_basis: 'Installs' },
   debt_request: { loan_amount: '50,000,000', loan_currency: 'USD', loan_purpose: 'asset', loan_purpose_detail: 'Trucks', tenor_months: '36', repayment_structure: 'monthly' },
@@ -51,7 +57,7 @@ test('a founder applies for equity and debt, staff review it and the committee d
   await founder.get(`/my/a/${ref}/s/cap_table`).expect(404);
   r = await founder.get(`/my/a/${ref}/documents`).expect(200);
   assert.doesNotMatch(r.text, /Business background questionnaire/);
-  const part1 = ['venture', 'team', 'problem', 'traction', 'equity_ask', 'valuation', 'use_of_funds', 'debt_request', 'repayment', 'existing_debt', 'legal', 'declaration'];
+  const part1 = ['venture', 'team', 'problem', 'traction', 'ambition', 'development', 'funding_context', 'equity_ask', 'valuation', 'use_of_funds', 'debt_request', 'repayment', 'existing_debt', 'legal', 'declaration'];
   for (const section of part1) await founder.post(`/my/a/${ref}/s/${section}`).type('form').send(toForm(equityDebtAnswers[section])).expect(302);
   let ans = Object.fromEntries((await db.many(`SELECT key, value FROM answers a JOIN applications x ON x.id = a.application_id WHERE x.ref = $1`, [ref])).map((x) => [x.key, x.value]));
   assert.equal(ans.eq_amount, 100000000, 'money is stored as a number');
@@ -96,7 +102,7 @@ test('a founder applies for equity and debt, staff review it and the committee d
   r = await founder.get(`/my/a/${ref}/documents`).expect(200);
   assert.match(r.text, /VentureOS_Business_Background_Questionnaire.docx/);
   await founder.get('/static/templates/VentureOS_Business_Background_Questionnaire.docx').expect(200);
-  for (const t of ['business_background', 'tax_returns', 'founder_ids', 'incorporation', 'memart', 'financial_model', 'financial_statements',
+  for (const t of ['business_background', 'tax_returns', 'balance_sheet', 'sales_evidence', 'founder_ids', 'incorporation', 'memart', 'financial_model', 'financial_statements',
     'management_accounts', 'valuation_workings', 'bank_statements', 'tax_clearance', 'loan_letters']) {
     await founder.post(`/my/a/${ref}/documents`).field('doc_type', t).attach('file', Buffer.from('%PDF-1.4 test'), `${t}.pdf`).expect(302);
   }
@@ -112,6 +118,12 @@ test('a founder applies for equity and debt, staff review it and the committee d
   assert.match(r.text, /not performing/);
   assert.match(r.text, /55% of revenue comes from one customer/);
   assert.match(r.text, /owned by the founders, not the company/);
+  assert.match(r.text, /Only 56% of invoiced sales were paid/);
+  assert.match(r.text, /Key agreement not signed: Estate Co/);
+  assert.match(r.text, /no claim on shares or IP/);
+  assert.match(r.text, /signed engagement letter/);
+  // The triage rubric applies, plus the equity and debt rubrics after the invitation
+  assert.match(r.text, /ScaleGate triage/);
 
   // A reviewer cannot see it until assigned, then must declare conflicts before reading
   const rev = await signIn(app, 'rev@scalegate.test', 'Rita Reviewer');

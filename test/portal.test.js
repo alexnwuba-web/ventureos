@@ -122,3 +122,36 @@ test('monthly investment presentation: announce, register, submit to present, se
   assert.equal(wd(copy.starts_at), wd(a.starts_at));
   assert.equal(copy.public, false);
 });
+
+test('integrity veto, the ten-working-day answer date, and the triage traction rule', async () => {
+  const { answerDue } = require('../src/lib/view');
+  // Friday 6 Nov 2026 + 10 working days = Friday 20 Nov 2026
+  assert.equal(answerDue(new Date('2026-11-06T09:00:00Z')).toISOString().slice(0, 10), '2026-11-20');
+  await db.query(`UPDATE applications SET status = 'submitted', stage = 1, submitted_at = now() WHERE ref = $1`, [ref]);
+  let r = await founder.get(`/my/a/${ref}`).expect(200);
+  assert.match(r.text, /written answer by/);
+  r = await admin.get('/staff').expect(200);
+  assert.match(r.text, /Cold Hub/);
+
+  // Triage: a traction score above 3 needs evidence in the comments
+  const rev = await signIn(app, 'rev2@scalegate.test', 'Rev Two');
+  await admin.post('/staff/people').type('form').send({ email: 'rev2@scalegate.test', role: 'reviewer' }).expect(302);
+  const revRow = await db.one(`SELECT id FROM people WHERE email = 'rev2@scalegate.test'`);
+  await admin.post(`/staff/a/${ref}/assign`).type('form').send({ reviewer: revRow.id }).expect(302);
+  await rev.post(`/staff/a/${ref}/conflict`).type('form').send({ none: 'yes' }).expect(302);
+  const form = { rubric: 'triage', send: 'yes', recommendation: 'advance', 'scores[founder]': '4', 'scores[problem_fit]': '4', 'scores[traction]': '5', 'scores[europe]': '3', 'scores[scalability]': '3' };
+  await rev.post(`/staff/a/${ref}/review`).type('form').send(form).expect(400);
+  await rev.post(`/staff/a/${ref}/review`).type('form').send({ ...form, comments: 'Twelve paying estates; invoices seen.' }).expect(302);
+  assert.equal((await db.one(`SELECT total FROM reviews WHERE rubric = 'triage'`)).total, 75);
+  await rev.post(`/staff/a/${ref}/review`).type('form').send({ ...form, rubric: 'equity' }).expect(400, /Unknown rubric/);
+
+  // Veto: only administrators, no reason, out of every list
+  await rev.post(`/staff/a/${ref}/veto`).type('form').send({ on: 'yes' }).expect(403);
+  await admin.post(`/staff/a/${ref}/veto`).type('form').send({ on: 'yes' }).expect(302);
+  assert.doesNotMatch((await admin.get('/staff').expect(200)).text, /Cold Hub/);
+  assert.match((await admin.get('/staff?vetoed=1').expect(200)).text, /Cold Hub/);
+  await rev.get(`/staff/a/${ref}`).expect(404);
+  await admin.get(`/staff/a/${ref}`).expect(200);
+  await admin.post(`/staff/a/${ref}/veto`).type('form').send({ on: 'no' }).expect(302);
+  assert.match((await admin.get('/staff').expect(200)).text, /Cold Hub/);
+});

@@ -38,7 +38,7 @@ const set = (appId, values) => Promise.all(Object.entries(values).map(([k, v]) =
   const f2 = await person('amaka@example.ng', 'Amaka Eze');
   const a2 = await A.create(f2, { kinds: ['equity'], ventureName: 'Zobo & Co' });
   await set(a2.id, { one_liner: 'Shelf-stable hibiscus and moringa teas for the diaspora', registered: 'yes', legal_name: 'Zobo and Co Limited', registration_country: 'Nigeria', rc_number: 'RC 1734002',
-    hq_country: 'Nigeria', hq_city: 'Lagos', stage: 'early_revenue', pillar: 'grow', sector: 'Packaged food',
+    hq_country: 'Nigeria', hq_city: 'Lagos', stage: 'revenue', pillar: 'grow', sector: 'Packaged food',
     founders: [{ name: 'Amaka Eze', role: 'CEO', ownership: 80, full_time: 'Yes', years: 9 }, { name: 'Bola Ade', role: 'Operations', ownership: 20, full_time: 'No', years: 4 }],
     eq_amount: 150000000, eq_currency: 'NGN', eq_instrument: 'ordinary', eq_pre_money: 1200000000, eq_offered: 15, val_methods: ['estimate'], val_by: 'founders',
     val_workings: 'Our brand and the size of the diaspora market justify the valuation; similar brands in the UK are valued highly and we expect to grow fast.',
@@ -52,7 +52,7 @@ const set = (appId, values) => Promise.all(Object.entries(values).map(([k, v]) =
 
   const f3 = await person('efe@example.gh', 'Efe Mensah');
   const a3 = await A.create(f3, { kinds: ['residency', 'debt'], ventureName: 'Kente Loom Studio' });
-  await set(a3.id, { one_liner: 'Contemporary woven textiles for European interiors', registered: 'yes', hq_country: 'Ghana', hq_city: 'Accra', stage: 'growth', pillar: 'create', sector: 'Textiles',
+  await set(a3.id, { one_liner: 'Contemporary woven textiles for European interiors', registered: 'yes', hq_country: 'Ghana', hq_city: 'Accra', stage: 'scaling', pillar: 'create', sector: 'Textiles',
     loan_amount: 40000000, loan_currency: 'USD', loan_purpose: 'asset', tenor_months: 24, repayment_structure: 'monthly', revenue_currency: 'GHS', top_customer_share: 62,
     fin_history: [{ label: 'Last year', revenue: 90000000, ebitda: 12000000 }], has_debt: 'yes', debts: [{ lender: 'GCB Bank', outstanding: 8000000, monthly: 600000, status: 'Performing' }],
     collateral: [{ type: 'Equipment', description: 'Looms', market_value: 25000000, charged: 'No' }], credit_events: 'no' });

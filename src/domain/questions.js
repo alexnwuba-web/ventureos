@@ -63,16 +63,18 @@ const SECTIONS = [
       { key: 'hq_country', label: 'Country where you operate now', type: 'select', options: COUNTRIES, required: true },
       { key: 'hq_city', label: 'City', type: 'text', required: true },
       { key: 'website', label: 'Website or social page', type: 'url' },
-      { key: 'stage', label: 'Stage', type: 'select', required: true, options: [
-        { value: 'idea', label: 'Idea — not built yet' }, { value: 'prototype', label: 'Prototype or first body of work' },
-        { value: 'pilot', label: 'Pilot with a real user or partner' }, { value: 'early_revenue', label: 'Early revenue' },
-        { value: 'growth', label: 'Growing revenue' }, { value: 'established', label: 'Established business (3+ years trading)' }] },
+      { key: 'year_started', label: 'Year the venture started', type: 'number', required: true },
+      { key: 'stage', label: 'Stage', type: 'select', required: true, help: 'The same stages ScaleGate uses.', options: [
+        { value: 'idea', label: 'Idea — not built yet' }, { value: 'prototype', label: 'Prototype' }, { value: 'first_customers', label: 'First customers' },
+        { value: 'revenue', label: 'Revenue' }, { value: 'scaling', label: 'Scaling' }] },
+      { key: 'sg_sector', label: 'Sector', type: 'select', required: true, help: 'The same sectors ScaleGate uses.', options: [
+        { value: 'food', label: 'Food and agriculture' }, { value: 'water', label: 'Water' }, { value: 'energy', label: 'Energy' }, { value: 'health', label: 'Health' }, { value: 'other', label: 'Other' }] },
       { key: 'pillar', label: 'Pillar', type: 'select', required: ['residency'], options: [
         { value: 'make', label: 'Make — water, energy, petroleum and petrochemicals, waste, cooling, diagnostics' },
         { value: 'grow', label: 'Grow — agriculture, food processing, packaging and export' },
         { value: 'create', label: 'Create — fashion, music, art, authorship, theatre, media, tourism' },
         { value: 'none', label: 'None of these' }] },
-      { key: 'sector', label: 'Sector, in your own words', type: 'text', required: true },
+      { key: 'sector', label: 'Your sector, in your own words', type: 'text' },
     ],
   },
   {
@@ -83,7 +85,9 @@ const SECTIONS = [
         { key: 'name', label: 'Full name' }, { key: 'role', label: 'Role' }, { key: 'email', label: 'Email' },
         { key: 'ownership', label: 'Ownership %', type: 'percent' }, { key: 'full_time', label: 'Full time?', type: 'select', options: ['Yes', 'No'] },
         { key: 'years', label: 'Years of relevant experience', type: 'number' }] },
-      { key: 'team_size', label: 'People working in the venture now (including founders)', type: 'number', required: true },
+      { key: 'hours_per_week', label: 'Hours a week the lead founder spends on this venture', type: 'number', required: true },
+      { key: 'founder_profile', label: 'LinkedIn or similar profile of the lead founder', type: 'url' },
+      { key: 'team_size', label: 'People working in the venture now (including founders)', type: 'number' },
       { key: 'track_record', label: 'What have the founders built, made or run before? Give evidence — products, sales, exits, portfolios, publications.', type: 'textarea', required: true },
       { key: 'key_gaps', label: 'Which skills is the team missing, and how will you fill them?', type: 'textarea', required: true },
       { key: 'advisers', label: 'Advisers or mentors already involved', type: 'textarea' },
@@ -92,9 +96,10 @@ const SECTIONS = [
   {
     key: 'problem', title: 'Problem, solution and market', for: ['all'],
     fields: [
-      { key: 'problem', label: 'What problem do you solve? Describe it from the user\'s side.', type: 'textarea', required: true },
-      { key: 'who_suffers', label: 'Who has this problem, and how many of them are there?', type: 'textarea', required: true },
-      { key: 'alternatives', label: 'What do they do about it today?', type: 'textarea', required: true },
+      { key: 'problem', label: 'What problem do you solve? Who has it, what does it cost them today, and how do they solve it now? (about 200 words)', type: 'textarea', required: true },
+      { key: 'who_suffers', label: 'Who has this problem, and how many of them are there?', type: 'textarea', required: ['equity', 'debt', 'grant'] },
+      { key: 'problem_cost', label: 'What does the problem cost them today (money, time, health, lost sales)?', type: 'textarea' },
+      { key: 'alternatives', label: 'What alternatives do they use now, and why are those not good enough?', type: 'textarea', required: ['equity', 'debt'] },
       { key: 'solution', label: 'Your solution, and how it works', type: 'textarea', required: true },
       { key: 'differentiation', label: 'Why is yours better, cheaper or more workable in African conditions?', type: 'textarea', required: true },
       { key: 'market_size', label: 'How big is the market you can realistically reach in 3 years? Show how you calculated it.', type: 'textarea', required: true,
@@ -116,6 +121,57 @@ const SECTIONS = [
     ],
   },
 
+  {
+    key: 'ambition', title: 'Ambition and the gap', for: ['all'],
+    intro: 'In your own words. This tells us what help would actually unlock the venture.',
+    fields: [
+      { key: 'five_years', label: 'Where will this business be in five years?', type: 'textarea', required: true },
+      { key: 'blocker', label: 'What is stopping growth right now?', type: 'textarea', required: true },
+      { key: 'help_needed', label: 'What specific help would unlock it?', type: 'textarea', required: true },
+      { key: 'why_europe', label: 'Why Europe, specifically — or which markets outside Africa — and why now?', type: 'textarea' },
+      { key: 'pathway', label: 'If you know ScaleGate\'s pathways, which fits best?', type: 'select', help: 'Optional — we will propose one after we have met you.', options: [
+        { value: 'zero_to_gate', label: 'From 0 to Gate — validated locally, no presence abroad; needs research, model and positioning' },
+        { value: 'gate', label: 'Gate — ready to enter; needs the entry executed, first customers and partners' },
+        { value: 'gate_to_scale', label: 'Gate to Scale — in the market; needs customer discovery, commercial partnerships, capital preparation' },
+        { value: 'scale', label: 'Scale — growing abroad; needs infrastructure, partnerships, technical delivery' },
+        { value: 'investment_readiness', label: 'Investment Readiness — fundable but not yet investable; financial modelling, investor readiness, grants' },
+        { value: 'startup_visa', label: 'Startup Visa — founder relocation is the unlock, with a 12-month engagement' },
+        { value: 'unsure', label: 'Not sure' }] },
+    ],
+  },
+  {
+    key: 'development', title: 'Development history and IP', for: ['all'],
+    intro: 'How the product or work came to be, who has been involved, and what has been shown or promised to others. Nothing here asks how your technology works.',
+    fields: [
+      { key: 'dev_origin', label: 'When did you start working on it, and what gave you the idea?', type: 'textarea' },
+      { key: 'prototypes', label: 'How many prototypes, versions or collections have you built so far, and what changed between them?', type: 'textarea' },
+      { key: 'spent_to_date', label: 'Roughly how much has been spent on it to date?', type: 'money' },
+      { key: 'funded_by', label: 'Who paid for it? (own savings, family loans, grants, investors, an employer)', type: 'textarea' },
+      { key: 'helpers', label: 'Has anyone else helped design, build or fund it — a technician, a friend, a company, an employer, a sponsor, a government agency? Were they promised shares, revenue or anything else?', type: 'textarea', required: true },
+      { key: 'ip_filings', label: 'IP filed or registered (patent, utility model, design, trademark, copyright)', type: 'table', rows: 3, columns: [
+        { key: 'kind', label: 'Type' }, { key: 'office', label: 'Office or registry' }, { key: 'number', label: 'Application or certificate number' },
+        { key: 'filed', label: 'Date filed' }, { key: 'holder', label: 'In whose name' }, { key: 'status', label: 'Status' }] },
+      { key: 'prior_agreements', label: 'Have you signed any agreement, NDA, memorandum or letter of intent with anyone else about this venture or invention?', type: 'yesno', required: true },
+      { key: 'prior_agreements_detail', label: 'With whom, when, and what does it commit you to?', type: 'textarea', showIf: { key: 'prior_agreements', in: ['yes'] }, required: true },
+      { key: 'shown_to', label: 'Where has it been shown or published — media, exhibitions, competitions, government agencies, universities, investors? When?', type: 'textarea' },
+      { key: 'other_offers', label: 'Has anyone else offered to invest in it, buy it or license it? Where do those discussions stand?', type: 'textarea' },
+      { key: 'evidence', label: 'What measured evidence do you have that it works as claimed — test results, readings, certificates, lab reports, photos or videos of test runs?', type: 'textarea', required: true },
+      { key: 'independent_test', label: 'Would you allow an independent expert to test and measure it, under a confidentiality agreement, with ScaleGate covering the cost?', type: 'select', required: true, options: [
+        { value: 'yes', label: 'Yes' }, { value: 'with_conditions', label: 'Yes, with conditions' }, { value: 'no', label: 'No' }, { value: 'na', label: 'Not applicable — nothing to test' }] },
+    ],
+  },
+  {
+    key: 'funding_context', title: 'Funding so far and the wider deal', for: ['equity', 'debt', 'grant'],
+    fields: [
+      { key: 'raised_to_date', label: 'Money raised to date, and from whom (including grants, family and friends)', type: 'textarea', required: true },
+      { key: 'programme', label: 'Is this request part of a larger programme or co-financing — e.g. a development-finance institution, BOI/iDICE, a government scheme or a sponsor?', type: 'yesno', required: true },
+      { key: 'programme_detail', label: 'Which programme, the total size of the deal, what is already committed and by whom, and the gap you need filled', type: 'textarea', showIf: { key: 'programme', in: ['yes'] }, required: true },
+      { key: 'other_advisers', label: 'Are other advisers, brokers or arrangers already raising money for you? Is anyone exclusive?', type: 'textarea', required: ['equity', 'debt'] },
+      { key: 'mandate', label: 'Would you like ScaleGate Africa to act as your adviser to structure and raise this funding from its network of investors, banks, leasing companies and development-finance institutions?', type: 'select', required: true,
+        help: 'ScaleGate acts as adviser and arranger; it does not guarantee that funding will be raised. Terms are agreed in a written engagement letter.', options: [
+          { value: 'yes', label: 'Yes, I would like to discuss a mandate' }, { value: 'maybe', label: 'Possibly' }, { value: 'no', label: 'No — introductions only' }] },
+    ],
+  },
   // ───────────────────────────── Residency (VentureOS Center) ─────────────────────────────
   {
     key: 'residency', title: 'VentureOS Center residency', for: ['residency'],
@@ -181,8 +237,14 @@ const SECTIONS = [
       { key: 'val_by', label: 'Who set the valuation?', type: 'select', required: true, options: [
         { value: 'founders', label: 'The founders' }, { value: 'adviser', label: 'An independent adviser or valuer' }, { value: 'investor', label: 'A previous or lead investor' }] },
       { key: 'val_report', label: 'Is there a written valuation report?', type: 'yesno' },
+      { key: 'val_today', label: 'What does the valuation represent today, given the company\'s own assets before the new money? (Attach the current balance sheet.)', type: 'textarea', required: true },
+      { key: 'val_year', label: 'If you priced on a future year\'s profit, which year, and why is that the right year to price on rather than this year or next?', type: 'textarea', required: true },
+      { key: 'val_return', label: 'Discount rate or target investor return you assumed', type: 'percent' },
+      { key: 'val_earlier', label: 'Has the company been offered, priced or valued differently before? What changed?', type: 'textarea' },
+      { key: 'val_tranches', label: 'Would you consider milestone-based tranches, or a valuation adjustment tied to audited results?', type: 'select', required: true, options: [
+        { value: 'yes', label: 'Yes' }, { value: 'discuss', label: 'Open to discuss' }, { value: 'no', label: 'No' }] },
       { key: 'val_justify', label: 'Why should an investor accept this valuation rather than a lower one?', type: 'textarea', required: true },
-      { key: 'val_downside', label: 'What would make the company worth less? Give your downside case.', type: 'textarea', required: true },
+      { key: 'val_downside', label: 'What would make the company worth less? Give your downside case — and how the investor still earns a return in it.', type: 'textarea', required: true },
     ],
   },
   {
@@ -222,7 +284,7 @@ const SECTIONS = [
         { value: 'planned', label: 'We plan to appoint professional management' }] },
       { key: 'accounts', label: 'Your most recent accounts are', type: 'select', required: true, options: [
         { value: 'audited', label: 'Audited by an external auditor' }, { value: 'management', label: 'Management accounts only' }, { value: 'none', label: 'We do not keep formal accounts yet' }] },
-      { key: 'auditor', label: 'Auditor', type: 'text', showIf: { key: 'accounts', in: ['audited'] } },
+      { key: 'auditor', label: 'Auditor, and from which financial year', type: 'text', showIf: { key: 'accounts', in: ['audited'] } },
       { key: 'reporting_ack', label: 'Would you give investors or lenders monthly management accounts and audited annual accounts?', type: 'yesno', required: true },
       { key: 'board_seat', label: 'Would you accept an investor director on the board?', type: 'select', required: ['equity'], options: [
         { value: 'yes', label: 'Yes' }, { value: 'observer', label: 'An observer seat only' }, { value: 'no', label: 'No' }] },
@@ -232,7 +294,48 @@ const SECTIONS = [
         { value: 'yes', label: 'Yes, that is the plan' }, { value: 'maybe', label: 'Possibly' }, { value: 'no', label: 'No' }] },
       { key: 'conditions', label: 'Which governance conditions would you accept as a condition of the money? (e.g. independent directors, audit, a finance director, a budget approved by the board)', type: 'textarea', required: ['equity'] },
       { key: 'exit', label: 'How do investors get their money back? (sale, listing, buy-back, dividends) — and when?', type: 'textarea', required: ['equity'] },
+      { key: 'exit_multiple', label: 'Exit multiple and exit year you expect an investor to realise', type: 'text' },
+      { key: 'dividends', label: 'Dividend policy: when could investors expect cash distributions?', type: 'textarea', required: ['equity'] },
+      { key: 'protections', label: 'Investor protections you would offer', type: 'multiselect', options: [
+        { value: 'liquidation', label: 'Liquidation preference' }, { value: 'anti_dilution', label: 'Anti-dilution' }, { value: 'tag_along', label: 'Tag-along / drag-along' },
+        { value: 'put', label: 'Put option or buy-back if there is no exit by a set date' }, { value: 'pre_emption', label: 'Pre-emption on new shares' },
+        { value: 'reserved', label: 'Reserved matters (decisions needing investor consent)' }, { value: 'info', label: 'Information rights' }] },
+      { key: 'management', label: 'Who runs the business day to day? (chief executive, finance, sales, operations)', type: 'table', rows: 4, required: ['equity'], columns: [
+        { key: 'role', label: 'Role' }, { key: 'name', label: 'Name' }, { key: 'in_post', label: 'In post?', type: 'select', options: ['Yes', 'To be hired'] }, { key: 'terms', label: 'Terms (employee, contractor, founder)' }] },
+      { key: 'future_raises', label: 'Further raises planned after this one: when, how much, at what stage?', type: 'textarea' },
       { key: 'key_person', label: 'What happens if a key founder leaves or is unable to work?', type: 'textarea' },
+    ],
+  },
+
+  {
+    key: 'structure', title: 'Business structure and key agreements', for: ['equity', 'debt'],
+    intro: 'The company the money goes into, and anything it depends on that it does not own.',
+    fields: [
+      { key: 'investee', label: 'Which company would receive the money, and why that company rather than another in the group?', type: 'textarea', required: true },
+      { key: 'group', label: 'Does the business depend on related companies — manufacturers, brand or IP owners, landlords, distributors — that the investor or lender would not have a claim on? Who owns each, and what is your role and shareholding in each?', type: 'textarea', required: true },
+      { key: 'agreements', label: 'Key agreements the business depends on (distribution mandates, supply, offtake, licences, concessions)', type: 'table', rows: 4, columns: [
+        { key: 'counterparty', label: 'Counterparty' }, { key: 'what', label: 'What it covers' }, { key: 'signed', label: 'Signed?', type: 'select', options: ['Yes', 'In draft', 'Verbal only'] },
+        { key: 'term', label: 'Term and renewal' }, { key: 'exclusive', label: 'Exclusive? Both ways?' }, { key: 'termination', label: 'Termination and notice' }] },
+      { key: 'change_of_control', label: 'What happens to those agreements if a counterparty is sold, merges or raises its own capital?', type: 'textarea' },
+      { key: 'related_pricing', label: 'Where you buy from or sell to related companies, how are prices set and who approves them?', type: 'textarea' },
+    ],
+  },
+  {
+    key: 'trading', title: 'Trading evidence, capacity and approvals', for: ['equity', 'debt'],
+    intro: 'What has actually been sold, delivered and paid for — not orders or pipeline.',
+    fields: [
+      { key: 'monthly_sales', label: 'The last 12 months', type: 'table', required: true, rows: 12,
+        fixedRows: ['Month 1 (most recent)', 'Month 2', 'Month 3', 'Month 4', 'Month 5', 'Month 6', 'Month 7', 'Month 8', 'Month 9', 'Month 10', 'Month 11', 'Month 12'], columns: [
+          { key: 'month', label: 'Month (e.g. Oct 2026)' }, { key: 'invoiced', label: 'Invoiced', type: 'money' }, { key: 'delivered', label: 'Delivered', type: 'money' }, { key: 'paid', label: 'Paid (cash received)', type: 'money' }] },
+      { key: 'invoicing_entity', label: 'Which company invoices your customers today?', type: 'text', required: true },
+      { key: 'customers', label: 'Main customers', type: 'table', rows: 6, required: true, columns: [
+        { key: 'name', label: 'Customer' }, { key: 'since', label: 'Customer since' }, { key: 'terms', label: 'Payment terms' }, { key: 'reorders', label: 'Reordered?', type: 'select', options: ['Yes', 'No', 'Not yet due'] }, { key: 'share', label: 'Share of revenue', type: 'percent' }] },
+      { key: 'capacity', label: 'Capacity today against what the plan needs: what equipment or people are needed, at what cost, who pays, by when?', type: 'textarea', required: true },
+      { key: 'approvals', label: 'Product and regulatory approvals (NAFDAC, SON, NCC, NMDPRA, export…)', type: 'table', rows: 4, columns: [
+        { key: 'product', label: 'Product' }, { key: 'regulator', label: 'Regulator' }, { key: 'number', label: 'Registration number' }, { key: 'status', label: 'Status', type: 'select', options: ['Approved', 'Applied', 'Not yet applied', 'Not required'] }, { key: 'expected', label: 'If pending, expected when and why' }] },
+      { key: 'unapproved_sales', label: 'Are any products sold before their approval is granted? On what basis?', type: 'textarea' },
+      { key: 'input_costs', label: 'How do you handle rising input costs (materials, packaging, exchange rate, fuel)? Can you pass increases on to buyers?', type: 'textarea', required: true },
+      { key: 'prospects', label: 'Major prospects or deals in negotiation: is anything in writing?', type: 'textarea' },
     ],
   },
 
@@ -265,7 +368,7 @@ const SECTIONS = [
       { key: 'loan_amount', label: 'Amount you want to borrow', type: 'money', required: true },
       { key: 'loan_currency', label: 'Currency of the loan', type: 'select', options: CURRENCIES, required: true },
       { key: 'loan_purpose', label: 'Purpose', type: 'select', required: true, options: [
-        { value: 'working_capital', label: 'Working capital' }, { value: 'asset', label: 'Equipment or asset purchase' },
+        { value: 'working_capital', label: 'Working capital' }, { value: 'asset', label: 'Equipment or asset purchase' }, { value: 'lease', label: 'Equipment leasing' },
         { value: 'trade', label: 'Trade finance (LPO, invoice or import finance)' }, { value: 'project', label: 'Project or construction finance' },
         { value: 'refinance', label: 'Refinancing existing debt' }, { value: 'bridge', label: 'Bridge to an equity round' }] },
       { key: 'loan_purpose_detail', label: 'Exactly what the loan pays for, and how that produces the money to repay it', type: 'textarea', required: true },
@@ -360,7 +463,9 @@ const SECTIONS = [
     fields: [
       { key: 'heard_from', label: 'How did you hear about VentureOS?', type: 'select', options: ['ScaleGate', 'VentureOS monthly meeting', 'iDICE / AfriLabs', 'University or polytechnic', 'Social media', 'A friend or founder', 'Other'] },
       { key: 'decl_true', label: 'The information in this application and its documents is true and complete. I will tell ScaleGate Africa promptly if anything material changes.', type: 'check', required: true },
-      { key: 'decl_data', label: 'I agree that ScaleGate Africa may hold and use this information to assess the application and share it, in confidence, with its reviewers, committee and prospective funders, under the Nigeria Data Protection Act 2023.', type: 'check', required: true },
+      { key: 'decl_data', label: 'I agree that ScaleGate Africa may hold and use this information to assess my application, and share it in confidence with ScaleGate B.V. in the Netherlands, under the Nigeria Data Protection Act 2023.', type: 'check', required: true },
+      { key: 'consent_partners', label: 'Optional: ScaleGate Africa may also share it, in confidence, with partner organisations — investors, lenders and programme partners — when that could help my venture.', type: 'check' },
+      { key: 'consent_contact', label: 'Optional: you may contact me about training and future cycles.', type: 'check' },
       { key: 'signatory', label: 'Your full name', type: 'text', required: true },
       { key: 'signatory_role', label: 'Your role in the venture', type: 'text', required: true },
     ],
@@ -369,8 +474,8 @@ const SECTIONS = [
 
 const KINDS = {
   residency: { label: 'VentureOS Center residency', short: 'Residency', blurb: 'A 6–12 month live-work-build place in Lagos for Make, Grow and Create ventures, with labs, studios, housing and the route to Europe.' },
-  equity: { label: 'Equity investment', short: 'Equity', blurb: 'Investment for shares, a SAFE or a convertible note, introduced through ScaleGate to its investors.' },
-  debt: { label: 'Debt finance', short: 'Debt', blurb: 'A loan, asset finance or trade finance (LPO, invoice, import) arranged with lending partners.' },
+  equity: { label: 'Equity investment', short: 'Equity', blurb: 'Investment for shares, a SAFE or a convertible note, structured and introduced by ScaleGate to investors in its network.' },
+  debt: { label: 'Debt finance', short: 'Debt', blurb: 'A loan, equipment leasing, asset or trade finance (LPO, invoice, import), arranged with banks, leasing companies and development-finance institutions.' },
   grant: { label: 'Grant or sponsorship', short: 'Grant', blurb: 'Grant funding or sponsorship from development partners, foundations and corporate sponsors.' },
 };
 
@@ -379,9 +484,13 @@ const KINDS = {
  * Part 2, the full documentation. Every question is in Part 1 unless its section is listed in PART_TWO_SECTIONS or
  * the question in PART_TWO_FIELDS; PART_ONE_FIELDS brings single questions of a Part 2 section forward.
  */
-const PART_TWO_SECTIONS = new Set(['valuation', 'use_of_funds', 'cap_table', 'governance', 'financials', 'repayment', 'existing_debt', 'security']);
+const PART_TWO_SECTIONS = new Set(['valuation', 'use_of_funds', 'cap_table', 'governance', 'structure', 'trading', 'financials', 'repayment', 'existing_debt', 'security']);
 const PART_ONE_FIELDS = new Set(['val_methods', 'val_workings', 'milestones', 'repayment_source', 'has_debt', 'credit_events', 'credit_events_detail']);
-const PART_TWO_FIELDS = new Set(['related_party', 'related_party_detail', 'pep', 'reporting_ack_grant', 'rate_expected', 'drawdown']);
+const PART_TWO_FIELDS = new Set(['related_party', 'related_party_detail', 'pep', 'reporting_ack_grant', 'rate_expected', 'drawdown', 'ip_filings', 'shown_to', 'other_offers', 'prototypes',
+  // Kept out of the initial submission so it can be done on a phone in under fifteen minutes.
+  'key_gaps', 'advisers', 'differentiation', 'market_size', 'go_to_market', 'competitors', 'pan_african', 'partners', 'growth_rate', 'customers_count',
+  'licences', 'ip_registered', 'date_incorporated', 'founder_profile', 'why_europe', 'spent_to_date', 'eq_discount', 'eq_committed', 'eq_lead', 'eq_close',
+  'facilities', 'study', 'sponsor', 'upside_preference', 'cross_pillar', 'other_advisers', 'heard_from', 'who_suffers', 'problem_cost', 'alternatives', 'team_size', 'sector']);
 const PARTS = { 1: 'Initial submission', 2: 'Full documentation' };
 
 const fieldIndex = new Map();
