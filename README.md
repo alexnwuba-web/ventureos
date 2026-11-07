@@ -6,6 +6,16 @@ PostgreSQL database on the Lagos server.
 
 ## What it does
 
+**Two parts.** Founders first send a short **initial submission** (Part 1): the venture, founders, problem and
+market, traction and what they are asking for — for equity, the valuation with its method and workings; for debt,
+the loan, its purpose, the repayment source and any credit history — with a pitch deck, business plan and CVs.
+ScaleGate screens it and either declines, asks for more, or **invites the venture to the full documentation**
+(Part 2): the rest of the valuation, cap table, governance, three years of financials and projections, loans,
+security, and documents including the business background questionnaire (`public/templates/`), financial
+statements, tax returns and bank statements. Which questions and documents belong to Part 1 is set in
+`PART_TWO_SECTIONS`, `PART_ONE_FIELDS` and `PART_TWO_FIELDS` (`src/domain/questions.js`) and `PART_ONE_DOCS`
+(`src/domain/documents.js`). A residency can go to review on Part 1 alone.
+
 **Founders** sign in with their email and a six-digit code (no passwords), start an application and choose what they
 are asking for — any mix of *residency*, *equity*, *debt* and *grant*. The questions and the document checklist adjust
 to that choice. They save as they go, upload documents, see exactly what is still missing, and send. If staff ask for
@@ -35,7 +45,7 @@ records decisions), **finance** (the innovator tab). Rubrics (`src/domain/scorin
 weighted to 100: the residency rubric is the selection criteria in the planning document (Problem 25, Ability 25,
 Commitment 20, Solution 15, Collaboration 10, Pan-African 5); equity, debt and grant have their own.
 
-Stages: draft → submitted → screening → independent review → challenge task (residency) or due diligence (funding) →
+Stages: draft → submitted (Part 1) → screening → invited to full documentation → full documentation received (Part 2) → independent review → challenge task (residency) or due diligence (funding) →
 interview → committee → accepted / offer / waitlisted / declined. Information can be requested at any stage before a
 decision. Every change, document opened and decision is in the history.
 

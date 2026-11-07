@@ -47,7 +47,7 @@ const set = (appId, values) => Promise.all(Object.entries(values).map(([k, v]) =
     uof: [{ item: 'NAFDAC and EU certification', amount: 25000000 }, { item: 'Packaging line', amount: 70000000 }, { item: 'UK distribution', amount: 40000000 }],
     runway_after: 10, accounts: 'management', owner_manager: 'founder_ceo', independent_directors: 0, board_seat: 'observer', divestment: 'no', ip_owner: 'company', reporting_ack: 'yes',
     projections: [{ label: 'Year 1', revenue: 150000000 }, { label: 'Year 2', revenue: 400000000 }, { label: 'Year 3', revenue: 1100000000 }, { label: 'Year 4' }, { label: 'Year 5' }] });
-  await db.query(`UPDATE applications SET status = 'review', submitted_at = now() - interval '9 days' WHERE id = $1`, [a2.id]);
+  await db.query(`UPDATE applications SET status = 'review', stage = 2, submitted_at = now() - interval '9 days', full_submitted_at = now() - interval '2 days' WHERE id = $1`, [a2.id]);
   await db.query(`UPDATE ventures SET pillar = 'grow', country = 'Nigeria' WHERE id = $1`, [a2.venture_id]);
 
   const f3 = await person('efe@example.gh', 'Efe Mensah');

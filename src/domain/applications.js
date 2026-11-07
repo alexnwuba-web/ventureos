@@ -81,7 +81,7 @@ function parseValue(f, raw) {
 /** Saves the fields of one section from a posted form (body.a). */
 async function saveSection(app, sectionKey, body, actorId) {
   if (!W.editable(app.status)) throw err(409, 'This application has been sent and can no longer be changed.');
-  const section = Q.sectionsFor(app.kinds).find((s) => s.key === sectionKey);
+  const section = Q.sectionsFor(app.kinds, app.stage).find((s) => s.key === sectionKey);
   if (!section) throw err(404, 'That part of the application does not exist.');
   const posted = (body && body.a) || {};
   await db.tx(async (q) => {
@@ -108,13 +108,14 @@ async function documentsOf(appId) {
 
 /** Everything needed before sending: [] when ready. */
 async function readiness(app, answers, docs) {
-  const missing = Q.missing(app.kinds, answers);
-  const docsMissing = D.missingDocs(app.kinds, answers, docs);
+  const stage = app.stage || 1;
+  const missing = Q.missing(app.kinds, answers, stage);
+  const docsMissing = D.missingDocs(app.kinds, answers, docs, stage);
   let total = 0, done = 0;
-  for (const s of Q.sectionsFor(app.kinds)) for (const f of s.fields) {
+  for (const s of Q.sectionsFor(app.kinds, stage)) for (const f of s.fields) {
     if (Q.isRequired(f, s, app.kinds, answers)) { total++; if (Q.filled(f, answers[f.key])) done++; }
   }
-  const reqDocs = D.docsFor(app.kinds, answers).filter((d) => d.isRequired).length;
+  const reqDocs = D.docsFor(app.kinds, answers, stage).filter((d) => d.isRequired).length;
   total += reqDocs; done += reqDocs - docsMissing.length;
   return { missing, docsMissing, ready: !missing.length && !docsMissing.length, percent: total ? Math.round((done / total) * 100) : 100 };
 }
@@ -124,9 +125,11 @@ async function submit(app, person) {
   const answers = await answersOf(app.id);
   const r = await readiness(app, answers, await documentsOf(app.id));
   if (!r.ready) throw err(400, 'Some required answers or documents are still missing.');
-  const to = app.status === 'info_requested' ? 'screening' : 'submitted';
-  await db.query(`UPDATE applications SET status = $2, submitted_at = COALESCE(submitted_at, now()), updated_at = now() WHERE id = $1`, [app.id, to]);
-  await audit(person.id, app.id, app.status === 'info_requested' ? 'resubmitted' : 'submitted', { from: app.status, to });
+  // Part 1 goes to screening; Part 2 (and anything sent back after the invitation) to the full-documentation queue.
+  const to = app.status === 'draft' ? 'submitted' : (app.stage === 2 ? 'full_submitted' : 'screening');
+  await db.query(`UPDATE applications SET status = $2, submitted_at = COALESCE(submitted_at, now()), full_submitted_at = CASE WHEN $2 = 'full_submitted' THEN now() ELSE full_submitted_at END,
+    updated_at = now() WHERE id = $1`, [app.id, to]);
+  await audit(person.id, app.id, app.status === 'draft' ? 'submitted' : app.status === 'full_requested' ? 'full.submitted' : 'resubmitted', { from: app.status, to, part: app.stage });
   return to;
 }
 
@@ -135,6 +138,7 @@ async function move(app, to, actor, note) {
   if (!W.canMove(app.status, to)) throw err(409, `An application that is ${W.STATUSES[app.status].label.toLowerCase()} cannot move to ${W.STATUSES[to].label.toLowerCase()}.`);
   if (W.isDecision(to) && !['admin', 'committee'].includes(actor.staff_role)) throw err(403, 'Decisions are recorded by the committee or an administrator.');
   if (!W.isDecision(to) && actor.staff_role !== 'admin') throw err(403, 'Only an administrator moves applications between stages.');
+  if (to === 'full_requested') await db.query('UPDATE applications SET stage = 2 WHERE id = $1', [app.id]);
   await db.query(`UPDATE applications SET status = $2, updated_at = now(), decided_at = CASE WHEN $3 THEN now() ELSE decided_at END,
     decision_note = CASE WHEN $3 THEN $4 ELSE decision_note END WHERE id = $1`, [app.id, to, W.isDecision(to), note || null]);
   await audit(actor.id, app.id, 'status', { from: app.status, to, note: note || undefined });

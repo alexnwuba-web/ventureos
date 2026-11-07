@@ -19,6 +19,7 @@
         <% if (app.pillar) { %><span class="badge <%= app.pillar %>"><%= pillarLabel(app.pillar) %></span><% } %>
         <% for (const k of app.kinds) { %><span class="badge kind"><%= kindLabel(k) %></span><% } %>
         <span class="badge <%= st.tone %>"><%= st.label %></span>
+        <span class="badge">Part <%= app.stage %>: <%= PARTS[app.stage] %></span>
         <% if (app.cohort_name) { %><span class="badge"><%= app.cohort_name %></span><% } %>
       </div>
       <p class="small muted" style="margin:6px 0 0"><%= app.applicant_name %> · <a href="mailto:<%= app.applicant_email %>"><%= app.applicant_email %></a><%= app.applicant_phone ? ' · ' + app.applicant_phone : '' %> · sent <%= date(app.submitted_at) %></p>
@@ -41,7 +42,7 @@
       <section id="summary">
         <div class="card">
           <h2 style="margin-top:0">First read</h2>
-          <p class="small muted" style="margin-top:-4px">Worked out from the founder's answers. Flags tell you where to ask questions; they are not a decision.</p>
+          <p class="small muted" style="margin-top:-4px">Worked out from the founder's answers. Flags tell you where to ask questions; they are not a decision.<% if (app.stage === 1) { %> This is the initial submission: figures that come with the full documentation (financial statements, cap table, loans, security) are not in yet.<% } %></p>
           <div class="grid g4" style="margin:12px 0">
             <div class="metric"><span>Complete</span><b><%= ready.percent %>%</b></div>
             <div class="metric"><span>Red flags</span><b style="color:var(--red)"><%= analysis.counts.red %></b></div>
@@ -224,7 +225,7 @@
           <form method="post" action="/staff/a/<%= app.ref %>/status">
             <div class="field"><select name="to" required>
               <% for (const t of NEXT) { const dec = ['accepted','offer','waitlisted','declined'].includes(t); if (staff === 'committee' && !dec) continue; if (staff !== 'admin' && staff !== 'committee') continue; %>
-                <option value="<%= t %>"><%= status(t).label %></option><% } %>
+                <option value="<%= t %>"><%= t === 'full_requested' ? 'Invite to full documentation (Part 2)' : t === 'review' && app.stage === 1 ? 'Independent review on Part 1 only (residency)' : status(t).label %></option><% } %>
             </select></div>
             <div class="field"><textarea name="note" placeholder="Note — sent to the founder when asking for information or recording a decision"></textarea></div>
             <button class="btn small" type="submit" data-confirm="Change the stage? The founder will be emailed.">Change stage</button>

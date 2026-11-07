@@ -374,14 +374,28 @@ const KINDS = {
   grant: { label: 'Grant or sponsorship', short: 'Grant', blurb: 'Grant funding or sponsorship from development partners, foundations and corporate sponsors.' },
 };
 
+/*
+ * Two parts. Part 1 is the initial submission, screened by ScaleGate; only ventures invited to proceed complete
+ * Part 2, the full documentation. Every question is in Part 1 unless its section is listed in PART_TWO_SECTIONS or
+ * the question in PART_TWO_FIELDS; PART_ONE_FIELDS brings single questions of a Part 2 section forward.
+ */
+const PART_TWO_SECTIONS = new Set(['valuation', 'use_of_funds', 'cap_table', 'governance', 'financials', 'repayment', 'existing_debt', 'security']);
+const PART_ONE_FIELDS = new Set(['val_methods', 'val_workings', 'milestones', 'repayment_source', 'has_debt', 'credit_events', 'credit_events_detail']);
+const PART_TWO_FIELDS = new Set(['related_party', 'related_party_detail', 'pep', 'reporting_ack_grant', 'rate_expected', 'drawdown']);
+const PARTS = { 1: 'Initial submission', 2: 'Full documentation' };
+
 const fieldIndex = new Map();
 for (const s of SECTIONS) for (const f of s.fields) {
   if (fieldIndex.has(f.key)) throw new Error(`Duplicate question key ${f.key}`);
+  f.stage = PART_ONE_FIELDS.has(f.key) ? 1 : PART_TWO_FIELDS.has(f.key) ? 2 : PART_TWO_SECTIONS.has(s.key) ? 2 : 1;
   fieldIndex.set(f.key, { ...f, section: s.key });
 }
 
 const appliesTo = (section, kinds) => section.for.includes('all') || section.for.some((k) => kinds.includes(k));
-const sectionsFor = (kinds) => SECTIONS.filter((s) => appliesTo(s, kinds));
+/** The sections, with only the questions asked up to this part (2 = everything). */
+const sectionsFor = (kinds, stage = 2) => SECTIONS.filter((s) => appliesTo(s, kinds))
+  .map((s) => ({ ...s, fields: s.fields.filter((f) => f.stage <= stage), partTwo: s.fields.some((f) => f.stage === 2) && s.fields.some((f) => f.stage <= stage) }))
+  .filter((s) => s.fields.length);
 const field = (key) => fieldIndex.get(key) || null;
 
 /** Is this field shown, given the answers so far? */
@@ -409,9 +423,9 @@ function filled(f, v) {
 }
 
 /** Missing required answers, by section: [{ section, title, missing: [{key,label}] }]. */
-function missing(kinds, answers) {
+function missing(kinds, answers, stage = 2) {
   const out = [];
-  for (const s of sectionsFor(kinds)) {
+  for (const s of sectionsFor(kinds, stage)) {
     const m = s.fields.filter((f) => isRequired(f, s, kinds, answers) && !filled(f, answers[f.key])).map((f) => ({ key: f.key, label: f.label }));
     if (m.length) out.push({ section: s.key, title: s.title, missing: m });
   }
@@ -424,4 +438,4 @@ const option = (f, v) => {
   return o ? (typeof o === 'string' ? o : o.label) : v;
 };
 
-module.exports = { SECTIONS, KINDS, CURRENCIES, TRACKS, sectionsFor, field, visible, isRequired, filled, missing, option };
+module.exports = { SECTIONS, KINDS, PARTS, CURRENCIES, TRACKS, sectionsFor, field, visible, isRequired, filled, missing, option };

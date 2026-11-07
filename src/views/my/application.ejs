@@ -10,24 +10,26 @@
   </div>
   <% if (notice === 'saved') { %><div class="notice ok" style="margin-top:16px">Saved.</div><% } %>
   <% if (notice === 'sent') { %><div class="notice ok" style="margin-top:16px">Sent. We have emailed you a confirmation and will write to you at each stage.</div><% } %>
+  <% if (app.status === 'full_requested') { %><div class="notice warn" style="margin-top:16px"><b>Good news — we would like to proceed.</b> Please complete the full documentation: the parts marked <b>New</b> and the documents still required. Send it when everything is in.</div><% } %>
+  <% if (app.status === 'draft') { %><div class="notice" style="margin-top:16px"><b>Part 1 of 2 — initial submission.</b> Tell us about the venture and what you are asking for, with your pitch deck and business plan. If we would like to proceed, we will invite you to Part 2, the full documentation (financial statements, tax returns, the business background questionnaire and the rest).</div><% } %>
   <% if (app.status === 'info_requested') { %><div class="notice warn" style="margin-top:16px">We need more information — see the message below. Update your answers or documents, then send the application back.</div><% } %>
 
   <div class="split" style="margin-top:20px">
     <div>
       <div class="card">
-        <div class="row between"><h2 style="margin:0">Your application</h2><span class="small muted"><%= ready.percent %>% complete</span></div>
+        <div class="row between"><h2 style="margin:0"><%= app.stage === 2 ? 'Part 2 — full documentation' : 'Part 1 — initial submission' %></h2><span class="small muted"><%= ready.percent %>% complete</span></div>
         <div class="bar" style="margin:12px 0 6px"><span style="width:<%= ready.percent %>%"></span></div>
         <ol class="steps">
           <% sections.forEach((s, i) => { const cls = s.required && s.done === s.required ? 'done' : (s.started ? 'part' : ''); %>
             <li class="<%= cls %>"><span class="n"><%= cls === 'done' ? '✓' : i + 1 %></span>
-              <a href="/my/a/<%= app.ref %>/s/<%= s.key %>"><%= s.title %></a>
+              <a href="/my/a/<%= app.ref %>/s/<%= s.key %>"><%= s.title %></a><% if (app.stage === 2 && s.partTwo) { %> <span class="badge amber">New</span><% } %>
               <span class="meta"><%= s.required ? `${s.done} of ${s.required} required` : 'Optional' %></span></li>
           <% }) %>
           <li class="<%= !ready.docsMissing.length ? 'done' : (docs.length ? 'part' : '') %>"><span class="n"><%= !ready.docsMissing.length ? '✓' : sections.length + 1 %></span>
             <a href="/my/a/<%= app.ref %>/documents">Documents</a><span class="meta"><%= docs.length %> uploaded<%= ready.docsMissing.length ? ` · ${ready.docsMissing.length} required still missing` : '' %></span></li>
         </ol>
         <% if (editable) { %>
-          <p style="margin:18px 0 0"><a class="btn <%= ready.ready ? 'gold' : '' %>" href="/my/a/<%= app.ref %>/review">Check and send</a></p>
+          <p style="margin:18px 0 0"><a class="btn <%= ready.ready ? 'gold' : '' %>" href="/my/a/<%= app.ref %>/review"><%= app.stage === 2 ? 'Check and send the full documentation' : 'Check and send the initial submission' %></a></p>
         <% } %>
       </div>
 

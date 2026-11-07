@@ -86,7 +86,7 @@ r.get('/staff/a/:ref', async (req, res) => {
   const canSeeAnswers = req.staff !== 'reviewer' || (app.assignment && app.assignment.conflict === 'none');
   res.render('staff/application', { title: `${app.venture_name} · ${app.ref}`, app, answers: canSeeAnswers ? answers : {}, canSeeAnswers, docs: canSeeAnswers ? docs : [],
     ready, analysis, assignments, reviews, mine, othersHidden, summaries, rubrics, messages, history, reviewersAvailable, cohorts,
-    sections: Q.sectionsFor(app.kinds), docList: D.docsFor(app.kinds, answers), RUBRICS: S.RUBRICS,
+    sections: Q.sectionsFor(app.kinds, app.stage), docList: D.docsFor(app.kinds, answers, app.stage), PARTS: Q.PARTS, RUBRICS: S.RUBRICS,
     // A practical challenge is for residencies; due diligence is for funding requests.
     NEXT: (W.NEXT[app.status] || []).filter((t) => (t !== 'challenge' || app.kinds.includes('residency')) && (t !== 'due_diligence' || app.kinds.some((k) => k !== 'residency'))), Q, isAdmin: isAdmin(req), notice: req.query.n || null });
 });
@@ -101,7 +101,11 @@ r.post('/staff/a/:ref/status', async (req, res) => {
     await db.query('INSERT INTO messages (application_id, author_id, body) VALUES ($1,$2,$3)', [app.id, req.person.id, note]);
   }
   const st = W.STATUSES[to];
-  const lines = to === 'info_requested'
+  const lines = to === 'full_requested'
+    ? [`Dear ${app.applicant_name || 'founder'},`, `Thank you for your initial submission for ${app.venture_name} (${app.ref}). We have reviewed it and would like to proceed.`,
+      ...(note ? [note] : []),
+      'Your application is now open for the full documentation: the remaining questions and documents, including the business background questionnaire, financial statements and tax returns. Sign in to see exactly what is needed, then send it when complete.']
+    : to === 'info_requested'
     ? [`Dear ${app.applicant_name || 'founder'},`, `We need more information on your application ${app.ref} (${app.venture_name}):`, note, 'Your application is open again for changes. Update it and send it back to us.']
     : [`Dear ${app.applicant_name || 'founder'},`, `Your application ${app.ref} (${app.venture_name}) has moved to: ${st.founder}.`, ...(note && W.isDecision(to) ? [note] : [])];
   await mail.send({ to: app.applicant_email, subject: `VentureOS ${app.ref}: ${st.founder}`, lines, link: { label: 'See your application', url: `${config.baseUrl}/my/a/${app.ref}` } });

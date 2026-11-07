@@ -4,8 +4,8 @@
   <% if (staff === 'reviewer') { %><p class="muted">Applications assigned to you for review.</p><% } %>
   <% if (counts.length) { const by = Object.fromEntries(counts.map((c) => [c.status, c.n])); %>
     <div class="grid g4" style="margin:16px 0">
-      <a class="metric" href="/staff?status=submitted" style="text-decoration:none"><span>New</span><b><%= (by.submitted || 0) %></b></a>
-      <a class="metric" href="/staff" style="text-decoration:none"><span>In progress</span><b><%= ['screening','review','challenge','due_diligence','interview','committee','info_requested'].reduce((t, s) => t + (by[s] || 0), 0) %></b></a>
+      <a class="metric" href="/staff?status=submitted" style="text-decoration:none"><span>New initial submissions</span><b><%= (by.submitted || 0) + (by.screening || 0) %></b></a>
+      <a class="metric" href="/staff?status=full_submitted" style="text-decoration:none"><span>Full documentation in</span><b><%= (by.full_submitted || 0) %></b><span class="small" style="text-transform:none;letter-spacing:0"><%= by.full_requested || 0 %> invited, still writing</span></a>
       <a class="metric" href="/staff?status=accepted" style="text-decoration:none"><span>Accepted / offers</span><b><%= (by.accepted || 0) + (by.offer || 0) %></b></a>
       <div class="metric"><span>Drafts being written</span><b><%= drafts %></b></div>
     </div>
@@ -26,7 +26,7 @@
         <tr>
           <td><a href="/staff/a/<%= a.ref %>"><b><%= a.venture_name %></b></a><div class="small muted"><%= a.ref %> · <%= a.applicant_name || '' %><%= a.country ? ' · ' + a.country : '' %></div></td>
           <td><% if (a.pillar) { %><span class="badge <%= a.pillar %>"><%= pillarLabel(a.pillar) %></span> <% } %><% for (const k of a.kinds) { %><span class="badge kind"><%= kindLabel(k) %></span> <% } %></td>
-          <td><span class="badge <%= st.tone %>"><%= st.label %></span></td>
+          <td><span class="badge <%= st.tone %>"><%= st.label %></span><div class="small muted">Part <%= a.stage %></div></td>
           <td class="small"><%= a.reviews_done %> / <%= a.reviewers %></td>
           <td><%= a.avg_score != null ? a.avg_score : '—' %></td>
           <td class="small muted nowrap"><%= date(a.submitted_at) %></td>

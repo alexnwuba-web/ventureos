@@ -70,7 +70,7 @@ r.get('/my/a/:ref', async (req, res) => {
   const answers = await A.answersOf(app.id);
   const docs = await A.documentsOf(app.id);
   const ready = await A.readiness(app, answers, docs);
-  const sections = Q.sectionsFor(app.kinds).map((s) => {
+  const sections = Q.sectionsFor(app.kinds, app.stage).map((s) => {
     const req2 = s.fields.filter((f) => Q.isRequired(f, s, app.kinds, answers));
     const done = req2.filter((f) => Q.filled(f, answers[f.key])).length;
     const any = s.fields.some((f) => Q.filled(f, answers[f.key]));
@@ -89,7 +89,7 @@ r.post('/my/a/:ref/kinds', async (req, res) => {
 
 r.get('/my/a/:ref/s/:section', async (req, res) => {
   const app = await mine(req);
-  const sections = Q.sectionsFor(app.kinds);
+  const sections = Q.sectionsFor(app.kinds, app.stage);
   const i = sections.findIndex((s) => s.key === req.params.section);
   if (i < 0) throw Object.assign(new Error('That part of the application does not exist.'), { status: 404 });
   const answers = await A.answersOf(app.id);
@@ -100,7 +100,7 @@ r.get('/my/a/:ref/s/:section', async (req, res) => {
 r.post('/my/a/:ref/s/:section', async (req, res) => {
   const app = await mine(req);
   await A.saveSection(app, req.params.section, req.body, req.person.id);
-  const sections = Q.sectionsFor(app.kinds);
+  const sections = Q.sectionsFor(app.kinds, app.stage);
   const i = sections.findIndex((s) => s.key === req.params.section);
   const go = req.body.go;
   if (go === 'next' && sections[i + 1]) return res.redirect(`/my/a/${app.ref}/s/${sections[i + 1].key}`);
@@ -113,7 +113,7 @@ r.get('/my/a/:ref/documents', async (req, res) => {
   const app = await mine(req);
   const answers = await A.answersOf(app.id);
   const docs = await A.documentsOf(app.id);
-  res.render('my/documents', { title: 'Documents', app, list: D.docsFor(app.kinds, answers), docs, editable: W.editable(app.status), error: req.query.e || null });
+  res.render('my/documents', { title: 'Documents', app, list: D.docsFor(app.kinds, answers, app.stage), docs, editable: W.editable(app.status), error: req.query.e || null });
 });
 
 r.post('/my/a/:ref/documents', upload.single('file'), async (req, res) => {
@@ -168,20 +168,23 @@ r.get('/my/a/:ref/review', async (req, res) => {
   const answers = await A.answersOf(app.id);
   const docs = await A.documentsOf(app.id);
   const ready = await A.readiness(app, answers, docs);
-  res.render('my/review', { title: 'Check and send', app, answers, docs, ready, sections: Q.sectionsFor(app.kinds), editable: W.editable(app.status), Q, error: null });
+  res.render('my/review', { title: 'Check and send', app, answers, docs, ready, sections: Q.sectionsFor(app.kinds, app.stage), editable: W.editable(app.status), Q, error: null });
 });
 
 r.post('/my/a/:ref/submit', async (req, res) => {
   const app = await mine(req);
   const to = await A.submit(app, req.person);
   await mail.send({ to: req.person.email, subject: `We have received your application ${app.ref}`,
-    lines: [`Dear ${req.person.name},`, `Thank you. Your application for ${app.venture_name} (${app.ref}) has been ${to === 'screening' ? 'sent back to us with the information we asked for' : 'received'}.`,
-      'We screen every application, then two reviewers assess it independently. We will write to you at each stage.'],
+    lines: [`Dear ${req.person.name},`,
+      to === 'submitted' ? `Thank you. We have received the initial submission for ${app.venture_name} (${app.ref}). We will screen it and let you know whether we would like to proceed to full documentation.`
+        : to === 'full_submitted' ? `Thank you. We have received the full documentation for ${app.venture_name} (${app.ref}). It now goes to two independent reviewers.`
+          : `Thank you. Your application ${app.ref} has been sent back to us with the information we asked for.`,
+      'We will write to you at each stage.'],
     link: { label: 'See your application', url: `${config.baseUrl}/my/a/${app.ref}` } });
   const admins = await db.many(`SELECT email FROM people WHERE staff_role = 'admin'`);
   for (const a of admins) {
-    await mail.send({ to: a.email, subject: `New on VentureOS: ${app.venture_name} (${app.ref})`,
-      lines: [`${app.venture_name} has ${to === 'screening' ? 'sent back the information requested' : 'applied'} for: ${app.kinds.map((k) => Q.KINDS[k].short).join(', ')}.`],
+    await mail.send({ to: a.email, subject: `${to === 'full_submitted' ? 'Full documentation' : to === 'submitted' ? 'New initial submission' : 'Information sent back'}: ${app.venture_name} (${app.ref})`,
+      lines: [`${app.venture_name} (${app.kinds.map((k) => Q.KINDS[k].short).join(', ')}): ${W.STATUSES[to].label.toLowerCase()}.`],
       link: { label: 'Open in VentureOS', url: `${config.baseUrl}/staff/a/${app.ref}` } });
   }
   res.redirect(`/my/a/${app.ref}?n=sent`);

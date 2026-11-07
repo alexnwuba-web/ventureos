@@ -47,37 +47,63 @@ test('a founder applies for equity and debt, staff review it and the committee d
   assert.match(r.text, /still missing/);
   await founder.post(`/my/a/${ref}/submit`).expect(400);
 
-  // Answer every section
+  // Part 1 — the initial submission: only Part 1 parts exist yet
+  await founder.get(`/my/a/${ref}/s/cap_table`).expect(404);
+  r = await founder.get(`/my/a/${ref}/documents`).expect(200);
+  assert.doesNotMatch(r.text, /Business background questionnaire/);
+  const part1 = ['venture', 'team', 'problem', 'traction', 'equity_ask', 'valuation', 'use_of_funds', 'debt_request', 'repayment', 'existing_debt', 'legal', 'declaration'];
+  for (const section of part1) await founder.post(`/my/a/${ref}/s/${section}`).type('form').send(toForm(equityDebtAnswers[section])).expect(302);
+  let ans = Object.fromEntries((await db.many(`SELECT key, value FROM answers a JOIN applications x ON x.id = a.application_id WHERE x.ref = $1`, [ref])).map((x) => [x.key, x.value]));
+  assert.equal(ans.eq_amount, 100000000, 'money is stored as a number');
+  assert.deepEqual(ans.val_methods, ['estimate']);
+  assert.equal(ans.val_assumptions, undefined, 'Part 2 questions are not saved in Part 1');
+  assert.equal(ans.founders.length, 2);
+  r = await founder.get(`/my/a/${ref}/review`).expect(200);
+  assert.match(r.text, /Pitch deck/);
+  for (const t of ['pitch_deck', 'business_plan', 'founder_cvs']) {
+    await founder.post(`/my/a/${ref}/documents`).field('doc_type', t).attach('file', Buffer.from('%PDF-1.4 test'), `${t}.pdf`).expect(302);
+  }
+  await founder.post(`/my/a/${ref}/documents`).field('doc_type', 'other').attach('file', Buffer.from('MZ'), 'virus.exe').expect(400);
+  r = await founder.get(`/my/a/${ref}/review`).expect(200);
+  assert.match(r.text, /Everything required is in/);
+  await founder.post(`/my/a/${ref}/submit`).expect(302);
+  assert.equal((await db.one('SELECT status, stage FROM applications WHERE ref = $1', [ref])).status, 'submitted');
+  assert.ok(mail.outbox.some((m) => m.to === 'admin@scalegate.test' && /New initial submission: AquaPure/.test(m.subject)));
+  await founder.post(`/my/a/${ref}/s/venture`).type('form').send(toForm(equityDebtAnswers.venture)).expect(409);
+
+  // Screening, then the invitation to Part 2
+  r = await admin.get(`/staff/a/${ref}`).expect(200);
+  assert.match(r.text, /No method behind the valuation/, 'valuation is checked from the initial submission');
+  await admin.post(`/staff/a/${ref}/status`).type('form').send({ to: 'screening' }).expect(302);
+  await admin.post(`/staff/a/${ref}/status`).type('form').send({ to: 'full_requested', note: 'Strong initial case.' }).expect(302);
+  assert.ok(mail.outbox.some((m) => m.to === 'ada@example.ng' && /would like to proceed/.test(m.text)));
+  assert.equal((await db.one('SELECT stage FROM applications WHERE ref = $1', [ref])).stage, 2);
+
+  // Part 2 — full documentation
+  r = await founder.get(`/my/a/${ref}`).expect(200);
+  assert.match(r.text, /we would like to proceed/);
+  assert.match(r.text, />New</);
   for (const [section, a] of Object.entries(equityDebtAnswers)) {
     await founder.post(`/my/a/${ref}/s/${section}`).type('form').send(toForm(a)).expect(302);
   }
-  const ans = await db.many(`SELECT key, value FROM answers a JOIN applications x ON x.id = a.application_id WHERE x.ref = $1`, [ref]);
-  const byKey = Object.fromEntries(ans.map((x) => [x.key, x.value]));
-  assert.equal(byKey.eq_amount, 100000000, 'money is stored as a number');
-  assert.deepEqual(byKey.val_methods, ['estimate']);
-  assert.equal(byKey.founders.length, 2);
-  assert.equal(byKey.fin_history[0].label, 'Last year');
-  assert.equal(byKey.bureau_consent, true);
-
-  // Documents still missing
+  ans = Object.fromEntries((await db.many(`SELECT key, value FROM answers a JOIN applications x ON x.id = a.application_id WHERE x.ref = $1`, [ref])).map((x) => [x.key, x.value]));
+  assert.equal(ans.fin_history[0].label, 'Last year');
+  assert.equal(ans.bureau_consent, true);
+  assert.equal(ans.founders.length, 2, 'Part 1 answers are kept');
   r = await founder.get(`/my/a/${ref}/review`).expect(200);
   assert.match(r.text, /Bank statements/);
   assert.match(r.text, /Business background questionnaire/);
   r = await founder.get(`/my/a/${ref}/documents`).expect(200);
   assert.match(r.text, /VentureOS_Business_Background_Questionnaire.docx/);
   await founder.get('/static/templates/VentureOS_Business_Background_Questionnaire.docx').expect(200);
-  for (const t of ['business_background', 'tax_returns', 'pitch_deck', 'business_plan', 'founder_cvs', 'founder_ids', 'incorporation', 'memart', 'financial_model', 'financial_statements',
+  for (const t of ['business_background', 'tax_returns', 'founder_ids', 'incorporation', 'memart', 'financial_model', 'financial_statements',
     'management_accounts', 'valuation_workings', 'bank_statements', 'tax_clearance', 'loan_letters']) {
     await founder.post(`/my/a/${ref}/documents`).field('doc_type', t).attach('file', Buffer.from('%PDF-1.4 test'), `${t}.pdf`).expect(302);
   }
-  await founder.post(`/my/a/${ref}/documents`).field('doc_type', 'other').attach('file', Buffer.from('MZ'), 'virus.exe').expect(400);
-
   r = await founder.get(`/my/a/${ref}/review`).expect(200);
   assert.match(r.text, /Everything required is in/);
   await founder.post(`/my/a/${ref}/submit`).expect(302);
-  assert.ok(mail.outbox.some((m) => m.to === 'admin@scalegate.test' && /AquaPure/.test(m.subject)));
-  // Locked after sending
-  await founder.post(`/my/a/${ref}/s/venture`).type('form').send(toForm(equityDebtAnswers.venture)).expect(409);
+  assert.equal((await db.one('SELECT status FROM applications WHERE ref = $1', [ref])).status, 'full_submitted');
 
   // Staff: the first read flags the problems
   r = await admin.get(`/staff/a/${ref}`).expect(200);
@@ -122,7 +148,6 @@ test('a founder applies for equity and debt, staff review it and the committee d
 
   // Workflow: only allowed moves; info request reopens for the founder
   await admin.post(`/staff/a/${ref}/status`).type('form').send({ to: 'accepted' }).expect(409);
-  await admin.post(`/staff/a/${ref}/status`).type('form').send({ to: 'screening' }).expect(302);
   await admin.post(`/staff/a/${ref}/status`).type('form').send({ to: 'info_requested' }).expect(400);
   await admin.post(`/staff/a/${ref}/status`).type('form').send({ to: 'info_requested', note: 'Please send your valuation workings.' }).expect(302);
   r = await founder.get(`/my/a/${ref}`).expect(200);
@@ -130,7 +155,7 @@ test('a founder applies for equity and debt, staff review it and the committee d
   await founder.post(`/my/a/${ref}/s/valuation`).type('form').send(toForm({ ...equityDebtAnswers.valuation, val_methods: ['multiple', 'comparables'],
     val_workings: 'Revenue N48m x 6x (median of 4 West African water utilities 2023-25, see comparables) = N288m; plus contracted backlog of N112m valued at 1x = N400m pre-money.' })).expect(302);
   await founder.post(`/my/a/${ref}/submit`).expect(302);
-  assert.equal((await db.one('SELECT status FROM applications WHERE ref = $1', [ref])).status, 'screening');
+  assert.equal((await db.one('SELECT status FROM applications WHERE ref = $1', [ref])).status, 'full_submitted');
 
   for (const to of ['review', 'due_diligence', 'interview', 'committee']) await admin.post(`/staff/a/${ref}/status`).type('form').send({ to }).expect(302);
   // A reviewer cannot record decisions
@@ -157,7 +182,7 @@ test('a residency application asks residency questions and the tab works', async
   const app2 = await db.one('SELECT * FROM applications WHERE ref = $1', [ref]);
   const Q = require('../src/domain/questions');
   const answers = { pillar: 'create' };
-  const missing = Q.missing(app2.kinds, answers).flatMap((s) => s.missing.map((m) => m.key));
+  const missing = Q.missing(app2.kinds, answers, 1).flatMap((s) => s.missing.map((m) => m.key));
   assert.ok(missing.includes('portfolio_link'));
   assert.ok(!missing.includes('technical_depth'));
   assert.ok(missing.includes('tab_ack'));

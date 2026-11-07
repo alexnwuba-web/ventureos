@@ -15,7 +15,7 @@ const DOCS = [
   { key: 'org_chart', label: 'Staff list or organisation chart, with key post-holders', for: ['equity', 'debt', 'grant'] },
   { key: 'marketing_material', label: 'Marketing material (advertising, promotions, loyalty programme)', for: ['equity', 'debt'] },
   { key: 'founder_cvs', label: 'Founders\' CVs (one file or several)', required: ['residency', 'equity', 'debt'], for: ['all'] },
-  { key: 'founder_ids', label: 'Founders\' identity documents (passport, NIN slip or national ID)', required: ['equity', 'debt'], for: ['all'] },
+  { key: 'founder_ids', label: 'Founders\' identity documents (passport, NIN slip or national ID)', required: ['residency', 'equity', 'debt'], for: ['all'] },
   { key: 'incorporation', label: 'Certificate of incorporation and latest status report (e.g. CAC)', required: ['equity', 'debt'], for: ['all'],
     when: { key: 'registered', in: ['yes'] } },
   { key: 'memart', label: 'Memorandum and articles of association', required: ['equity'], for: ['equity', 'debt'], when: { key: 'registered', in: ['yes'] } },
@@ -39,19 +39,23 @@ const DOCS = [
   { key: 'other', label: 'Anything else you want us to see', for: ['all'] },
 ];
 
+// Asked for in the initial submission (Part 1); every other document belongs to the full documentation (Part 2).
+const PART_ONE_DOCS = new Set(['pitch_deck', 'business_plan', 'founder_cvs', 'portfolio', 'technical', 'letters', 'other']);
+for (const d of DOCS) d.stage = PART_ONE_DOCS.has(d.key) ? 1 : 2;
+
 const byKey = new Map(DOCS.map((d) => [d.key, d]));
 
-function docsFor(kinds, answers = {}) {
-  return DOCS.filter((d) => d.for.includes('all') || d.for.some((k) => kinds.includes(k))).map((d) => {
+function docsFor(kinds, answers = {}, stage = 2) {
+  return DOCS.filter((d) => d.stage <= stage && (d.for.includes('all') || d.for.some((k) => kinds.includes(k)))).map((d) => {
     const applies = !d.when || d.when.in.includes(answers[d.when.key]);
     return { ...d, isRequired: applies && !!(d.required && d.required.some((k) => kinds.includes(k))) };
   });
 }
 
 /** Required documents not yet uploaded. */
-function missingDocs(kinds, answers, uploaded) {
+function missingDocs(kinds, answers, uploaded, stage = 2) {
   const have = new Set(uploaded.filter((u) => !u.removed && u.status !== 'rejected').map((u) => u.doc_type));
-  return docsFor(kinds, answers).filter((d) => d.isRequired && !have.has(d.key));
+  return docsFor(kinds, answers, stage).filter((d) => d.isRequired && !have.has(d.key));
 }
 
 module.exports = { DOCS, docsFor, missingDocs, doc: (k) => byKey.get(k) || null };

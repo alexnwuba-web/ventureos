@@ -1,11 +1,11 @@
 <%- include('../partials/head') %>
 <div class="wrap narrow">
   <p class="small"><a href="/my/a/<%= app.ref %>">← <%= app.venture_name %></a></p>
-  <h1>Check and send</h1>
+  <h1>Check and send <span class="muted" style="font-size:18px">· <%= app.stage === 2 ? 'Part 2, full documentation' : 'Part 1, initial submission' %></span></h1>
   <% if (!editable) { %>
     <div class="notice">This application has been sent.</div>
   <% } else if (ready.ready) { %>
-    <div class="notice ok">Everything required is in. Read it through, then send it. You will not be able to change it after sending unless we ask you for more information.</div>
+    <div class="notice ok">Everything required is in. Read it through, then send it. You will not be able to change it after sending unless we ask you for more information<%= app.stage === 1 ? ' or invite you to the full documentation' : '' %>.</div>
     <form method="post" action="/my/a/<%= app.ref %>/submit" data-confirm="Send this application to ScaleGate Africa now?" class="card row between">
       <span>Ready to send <b><%= app.ref %></b>.</span><button class="btn gold" type="submit">Send application</button>
     </form>

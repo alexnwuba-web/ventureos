@@ -2,7 +2,9 @@
 /*
  * Where an application stands. The founder edits it while it is a draft, or when we ask for more information.
  *
- *   draft → submitted → screening → review → (challenge task | due diligence) → interview → committee → decision
+ *   Part 1 (initial submission): draft → submitted → screening
+ *   Part 2 (full documentation, by invitation): full_requested → full_submitted → review
+ *   then (challenge task | due diligence) → interview → committee → decision
  *
  * A residency goes through a 1–2 week practical challenge; a funding request goes through due diligence.
  * At any stage before a decision staff can ask for more information (the founder edits and sends it back).
@@ -11,6 +13,8 @@ const STATUSES = {
   draft: { label: 'Draft', founder: 'Not sent yet', tone: 'muted' },
   submitted: { label: 'Submitted', founder: 'Received — we will screen it shortly', tone: 'blue' },
   screening: { label: 'Screening', founder: 'Being screened', tone: 'blue' },
+  full_requested: { label: 'Invited to full documentation', founder: 'Invited to proceed — please complete the full documentation', tone: 'amber' },
+  full_submitted: { label: 'Full documentation received', founder: 'Full documentation received', tone: 'blue' },
   info_requested: { label: 'Information requested', founder: 'We need more from you', tone: 'amber' },
   review: { label: 'Independent review', founder: 'With reviewers', tone: 'blue' },
   challenge: { label: 'Challenge task', founder: 'Practical challenge task', tone: 'violet' },
@@ -27,8 +31,10 @@ const STATUSES = {
 const NEXT = {
   draft: ['withdrawn'],
   submitted: ['screening', 'info_requested', 'declined'],
-  screening: ['review', 'info_requested', 'declined'],
-  info_requested: ['screening', 'declined'],
+  screening: ['full_requested', 'review', 'info_requested', 'declined'],
+  full_requested: ['declined'],
+  full_submitted: ['review', 'info_requested', 'declined'],
+  info_requested: ['screening', 'full_submitted', 'declined'],
   review: ['challenge', 'due_diligence', 'interview', 'info_requested', 'declined', 'waitlisted'],
   challenge: ['interview', 'declined', 'waitlisted'],
   due_diligence: ['interview', 'committee', 'info_requested', 'declined'],
@@ -38,7 +44,7 @@ const NEXT = {
   accepted: [], offer: ['accepted', 'declined'], declined: [], withdrawn: [],
 };
 
-const editable = (status) => status === 'draft' || status === 'info_requested';
+const editable = (status) => status === 'draft' || status === 'info_requested' || status === 'full_requested';
 const canMove = (from, to) => (NEXT[from] || []).includes(to);
 /** Decisions are recorded by the committee or an admin. */
 const isDecision = (to) => ['accepted', 'offer', 'waitlisted', 'declined'].includes(to);
