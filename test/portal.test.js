@@ -18,7 +18,8 @@ const future = (days, hh = '10:00') => { const d = new Date(Date.now() + days * 
 
 test('front page shows the programme, cohorts, campus and projects that interest us', async () => {
   const r = await request(app).get('/').expect(200);
-  assert.match(r.text, /About VentureOS/);
+  assert.match(r.text, /About <em>VentureOS<\/em>/);
+  assert.match(r.text, /OxiAi/); assert.match(r.text, /OxiAcademy/); assert.match(r.text, /people decide/);
   assert.match(r.text, /Cohort 0/);
   assert.match(r.text, /VentureOS Center/);
   assert.match(r.text, /Projects that interest us/);
@@ -158,7 +159,7 @@ test('integrity veto, the ten-working-day answer date, and the triage traction r
 
 test('VentureOS as the way into ScaleGate: programmes, Startup Visa checks, partner enquiries', async () => {
   let r = await request(app).get('/').expect(200);
-  assert.match(r.text, /ScaleGate programmes — apply through VentureOS/);
+  assert.match(r.text, /ScaleGate programmes — <em>apply through VentureOS<\/em>/);
   for (const t of ['Zero to Gate', 'Gate to Scale', 'Dutch Startup Visa', 'Venture Philanthropy', 'Creative and Cultural Industries', 'Scale in Africa']) assert.match(r.text, new RegExp(t));
   assert.match(r.text, /not a visa or immigration agency/);
   assert.match(r.text, /African companies ready to grow in Europe/);

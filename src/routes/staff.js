@@ -16,6 +16,11 @@ const S = require('../domain/scoring');
 const { analyse } = require('../domain/analysis');
 const { audit } = require('../lib/audit');
 const mail = require('../lib/mail');
+// Every outcome letter, a decline included, points the founder to OxiAcademy.
+const academyLine = (declined) => (declined
+  ? 'This is not the end of the road. OxiAcademy, our learning partner, has courses and clinics to help you keep building, and you are welcome to apply to VentureOS again.'
+  : 'OxiAcademy, our learning partner, has courses and clinics for founders, and supports programmes such as iDICE.')
+  + (config.ecosystem.oxiacademy.url ? ` ${config.ecosystem.oxiacademy.url}` : '');
 const P = require('../domain/portal');
 
 const r = express.Router();
@@ -112,7 +117,8 @@ r.post('/staff/a/:ref/status', async (req, res) => {
       'Your application is now open for the full documentation: the remaining questions and documents, including the business background questionnaire, financial statements and tax returns. Sign in to see exactly what is needed, then send it when complete.']
     : to === 'info_requested'
     ? [`Dear ${app.applicant_name || 'founder'},`, `We need more information on your application ${app.ref} (${app.venture_name}):`, note, 'Your application is open again for changes. Update it and send it back to us.']
-    : [`Dear ${app.applicant_name || 'founder'},`, `Your application ${app.ref} (${app.venture_name}) has moved to: ${st.founder}.`, ...(note && W.isDecision(to) ? [note] : [])];
+    : [`Dear ${app.applicant_name || 'founder'},`, `Your application ${app.ref} (${app.venture_name}) has moved to: ${st.founder}.`, ...(note && W.isDecision(to) ? [note] : []),
+      ...(W.isDecision(to) ? [academyLine(to === 'declined')] : [])];
   await mail.send({ to: app.applicant_email, subject: `VentureOS ${app.ref}: ${st.founder}`, lines, link: { label: 'See your application', url: `${config.baseUrl}/my/a/${app.ref}` } });
   res.redirect(`/staff/a/${app.ref}?n=moved`);
 });

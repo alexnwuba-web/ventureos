@@ -12,6 +12,7 @@
   <% if (app.status === 'draft') { %><div class="notice" style="margin-top:16px"><b>Part 1 of 2 — initial submission.</b> Tell us about the venture and what you are asking for, with your pitch deck and business plan. If we would like to proceed, we will invite you to Part 2, the full documentation (financial statements, tax returns, the business background questionnaire and the rest).</div><% } %>
   <% if (app.status === 'info_requested') { %><div class="notice warn" style="margin-top:16px">We need more information — see the message below. Update your answers or documents, then send the application back.</div><% } %>
 
+  <% if (['declined'].includes(app.status)) { %><%- include('../partials/academy', { academyText: 'This is not the end of the road. OxiAcademy has courses and clinics to help you keep building — and you are welcome to apply to VentureOS again.' }) %><% } else if (app.status !== 'draft') { %><%- include('../partials/academy', { academyText: 'While we review, keep building: courses and clinics for founders, and support for programmes such as iDICE.' }) %><% } %>
   <div class="split" style="margin-top:20px">
     <div>
       <div class="card">

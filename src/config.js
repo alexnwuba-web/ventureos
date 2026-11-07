@@ -24,5 +24,11 @@ module.exports = {
     from: env.SMTP_FROM || 'VentureOS <no-reply@scalegate.org>',
   },
   // Shown in emails and on pages.
+  // Partners VentureOS promotes. OxiAi's agents help process applications and programmes (people decide);
+  // OxiAcademy supports entrepreneurs and programmes such as iDICE. Links are shown only when set.
+  ecosystem: {
+    oxiai: { name: 'OxiAi', url: env.OXIAI_URL === undefined ? 'https://oxiai.com' : env.OXIAI_URL },
+    oxiacademy: { name: 'OxiAcademy', url: env.OXIACADEMY_URL || '' },
+  },
   org: { name: 'ScaleGate Africa', product: 'VentureOS', address: '18A Sinari Daranijo Street, Victoria Island, Lagos', email: env.VENTUREOS_CONTACT || 'alex@scalegate.org' },
 };

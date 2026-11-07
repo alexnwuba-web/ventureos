@@ -1,8 +1,8 @@
 <%- include('../partials/head') %>
 <div class="wrap">
-  <div class="row between">
-    <div><h1>Your applications</h1><p class="muted" style="margin:0">Hello <%= person.name %>. Save as you go — nothing is sent until you press Send.</p></div>
-    <a class="btn gold" href="/my/new">New application</a>
+  <div class="pagehead">
+    <div><p class="eyebrow">Your VentureOS portal</p><h1>Hello, <em><%= (person.name || '').split(' ')[0] || 'founder' %></em></h1><p class="muted" style="margin:0">Your applications, meetings, requests and messages. Save as you go — nothing is sent until you press Send.</p></div>
+    <a class="btn gold" href="/my/new">New application <span class="arr">→</span></a>
   </div>
   <% for (const a of apps.filter((x) => x.awaiting || x.requests || x.actions || x.status === 'full_requested' || x.status === 'info_requested')) { %>
     <div class="notice warn" style="margin-top:16px"><b><%= a.venture_name %>:</b>
@@ -41,6 +41,7 @@
       <div class="card row between"><span>Attending <a href="/events/<%= e.id %>"><%= e.title %></a> <span class="muted small">· <%= P.whenLagos(e.starts_at) %></span></span><span class="badge green">Registered</span></div>
     <% } %>
   <% } %>
+  <div style="margin-top:24px"><%- include('../partials/academy') %></div>
   <p class="small" style="margin-top:20px"><a href="/events">See the monthly investment presentations and meetups →</a></p>
   <% if (tab.length) { %>
     <h2>Innovator tab</h2>

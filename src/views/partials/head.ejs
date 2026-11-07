@@ -4,14 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= title %> · VentureOS</title>
-  <meta name="description" content="VentureOS by ScaleGate Africa — Make. Grow. Create. Apply for the VentureOS Center residency, equity, debt or grant funding.">
+  <meta name="description" content="VentureOS by ScaleGate Africa — the way into ScaleGate. Make. Grow. Create. Apply for ScaleGate's programmes, the VentureOS Center residency, equity, debt or grant funding.">
+  <meta name="theme-color" content="#15120f">
+  <script>document.documentElement.className += ' js';</script>
+  <link rel="preload" href="/static/fonts/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/schibsted-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/css/brand.css">
   <link rel="stylesheet" href="/static/css/app.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2314213d'/><rect x='11' y='11' width='10' height='10' fill='%23c8a14a' transform='rotate(45 16 16)'/></svg>">
+  <link rel="icon" type="image/svg+xml" href="/static/img/ventureos-app-icon.svg">
+  <script src="/static/js/brand.js" defer></script>
 </head>
 <body>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="/"><i></i><b>VentureOS</b><span>ScaleGate Africa</span></a>
+    <a class="brand" href="/" aria-label="VentureOS home"><img class="mark" src="/static/img/ventureos-mark-ink.svg" alt=""><b>Venture<i>OS</i></b><span>by ScaleGate Africa</span></a>
     <nav>
       <% if (person) { %>
         <% if (staff) { %>
@@ -24,14 +30,14 @@
         <form method="post" action="/signout" style="display:inline"><button type="submit">Sign out</button></form>
       <% } else { %>
         <a href="/#scalegate">Programmes</a>
-        <a href="/events">Events</a>
+        <a href="/events" class="<%= path.startsWith('/events') ? 'on' : '' %>">Events</a>
         <a href="/#cohorts">Center</a>
         <a href="/#projects">Interests</a>
-        <a href="/partner">Partner with us</a>
-        <a href="/#apply">Apply</a>
-        <a href="/signin">Sign in</a>
+        <a href="/partner" class="<%= path.startsWith('/partner') ? 'on' : '' %>">Partner with us</a>
+        <a href="/signin" class="<%= path.startsWith('/signin') ? 'on' : '' %>">Sign in</a>
+        <a href="/#apply" class="cta">Apply</a>
       <% } %>
     </nav>
   </div>
 </header>
-<main>
+<main class="<%= typeof flush !== 'undefined' && flush ? 'flush' : '' %>">
