@@ -1,30 +1,109 @@
 <%- include('../partials/head') %>
+<%
+  const active = staffList.filter((p) => p.staff_active);
+  const suspended = staffList.filter((p) => !p.staff_active);
+  const byRole = Object.fromEntries(ST.ORDER.map((r) => [r, active.filter((p) => p.staff_role === r).length]));
+  const tone = { admin: 'scalegate', officer: 'kind', committee: 'violet', reviewer: 'green', finance: 'make' };
+  const what = { 'staff.added': 'added', 'staff.role': 'changed the role of', 'staff.edited': 'edited', 'staff.suspended': 'suspended', 'staff.reactivated': 'reactivated', 'staff.removed': 'removed', 'staff.invited': 'resent the sign-in link to', 'staff.set': 'set the role of' };
+%>
 <div class="wrap">
-  <h1>Staff</h1>
-  <p class="muted">Admins run everything. Reviewers see only applications assigned to them. The committee sees all applications and records decisions. Finance keeps the innovator tab. <%= founders %> founder account<%= founders === 1 ? '' : 's' %>.</p>
+  <div class="pagehead">
+    <div><p class="eyebrow">Administration</p><h1>Staff <em>console</em></h1>
+      <p class="muted" style="margin:0">Add the people who run VentureOS and decide what each can do. <%= active.length %> active staff<%= suspended.length ? ` · ${suspended.length} suspended` : '' %> · <%= founders %> founder account<%= founders === 1 ? '' : 's' %>.</p></div>
+    <a class="btn gold" href="#add">Add a member of staff <span class="arr">↓</span></a>
+  </div>
   <% if (error) { %><div class="notice err"><%= error %></div><% } %>
-  <div class="card" style="padding:0">
+  <% if (ok) { %><div class="notice ok"><%= ok %></div><% } %>
+
+  <div class="grid g4" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+    <% for (const r of ST.ORDER) { %>
+      <div class="metric"><span><%= ST.ROLES[r].label %></span><b><%= byRole[r] %></b><div class="small muted" style="margin-top:6px"><%= ST.ROLES[r].summary %></div></div>
+    <% } %>
+  </div>
+
+  <h2>Staff</h2>
+  <div class="card scrollx" style="padding:0">
     <table class="list">
-      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Assigned</th><th>Last signed in</th></tr></thead>
+      <thead><tr><th>Name</th><th>Role</th><th>Title and office</th><th>Assigned</th><th>Last signed in</th><th></th></tr></thead>
       <tbody>
-      <% for (const p of staffList) { %>
-        <tr><td><%= p.name || '—' %></td><td><%= p.email %></td>
-          <td><% if (p.id === person.id) { %><%= p.staff_role %> (you)<% } else { %>
-            <form method="post" action="/staff/people/<%= p.id %>/role" class="row"><select name="role" style="width:auto"><% for (const r of ['admin','reviewer','committee','finance']) { %><option <%= p.staff_role === r ? 'selected' : '' %>><%= r %></option><% } %><option value="">remove from staff</option></select><button class="btn small ghost" type="submit">Set</button></form>
-          <% } %></td>
-          <td><%= p.assigned %></td><td class="small muted"><%= when(p.last_seen_at) %></td></tr>
+      <% for (const p of staffList) { const me = p.id === person.id; %>
+        <tr style="<%= p.staff_active ? '' : 'opacity:.6' %>">
+          <td><b><%= p.name || '—' %></b><% if (me) { %> <span class="badge muted">you</span><% } %><div class="small muted"><%= p.email %></div></td>
+          <td><span class="badge <%= tone[p.staff_role] %>"><%= ST.label(p.staff_role) %></span><% if (!p.staff_active) { %> <span class="badge red">Suspended</span><% } %></td>
+          <td class="small"><%= p.staff_title || '—' %><div class="muted"><%= p.staff_office || '' %></div></td>
+          <td><%= p.assigned %></td>
+          <td class="small muted"><%= p.last_seen_at ? when(p.last_seen_at) : 'Not yet' %></td>
+          <td class="right"><a class="btn small ghost" href="/staff/people?edit=<%= p.id %>#p-<%= p.id %>">Manage</a></td>
+        </tr>
+        <% if (editing === p.id) { %>
+        <tr id="p-<%= p.id %>"><td colspan="6" style="background:var(--paper-100)">
+          <form method="post" action="/staff/people/<%= p.id %>">
+            <div class="grid g4">
+              <div class="field"><label class="lbl">Name</label><input type="text" name="name" value="<%= p.name %>"></div>
+              <div class="field"><label class="lbl">Job title</label><input type="text" name="title" value="<%= p.staff_title || '' %>" placeholder="e.g. Investment officer"></div>
+              <div class="field"><label class="lbl">Office</label><select name="office"><option value="">—</option><% for (const o of ST.OFFICES) { %><option <%= p.staff_office === o ? 'selected' : '' %>><%= o %></option><% } %></select></div>
+              <div class="field"><label class="lbl">Role</label><select name="role" <%= me ? 'disabled' : '' %>><% for (const r of ST.ORDER) { %><option value="<%= r %>" <%= p.staff_role === r ? 'selected' : '' %>><%= ST.label(r) %></option><% } %></select>
+                <% if (me) { %><div class="help" style="margin-top:6px">You cannot change your own role.</div><% } %></div>
+            </div>
+            <div class="row">
+              <button class="btn" type="submit" name="action" value="save">Save</button>
+              <button class="btn ghost" type="submit" name="action" value="invite">Resend sign-in link</button>
+              <% if (!me) { %>
+                <% if (p.staff_active) { %><button class="btn danger" type="submit" name="action" value="suspend" data-confirm="Suspend <%= p.name || p.email %>? They are signed out at once and lose staff access until reactivated.">Suspend</button>
+                <% } else { %><button class="btn ghost" type="submit" name="action" value="reactivate">Reactivate</button><% } %>
+                <button class="btn danger" type="submit" name="action" value="remove" data-confirm="Remove <%= p.name || p.email %> from staff? Their reviews and messages stay on record; they can still sign in as an ordinary user.">Remove from staff</button>
+              <% } %>
+              <a class="small" href="/staff/people" style="margin-left:auto">Close</a>
+            </div>
+          </form>
+        </td></tr>
+        <% } %>
       <% } %>
       </tbody>
     </table>
   </div>
-  <form class="card" method="post" action="/staff/people">
-    <h3 style="margin-top:0">Add a member of staff</h3>
-    <div class="grid g3">
-      <div class="field"><label class="lbl">Name</label><input type="text" name="name"></div>
-      <div class="field"><label class="lbl">Email</label><input type="email" name="email" required></div>
-      <div class="field"><label class="lbl">Role</label><select name="role"><option>reviewer</option><option>committee</option><option>finance</option><option>admin</option></select></div>
+
+  <form class="card" method="post" action="/staff/people" id="add" style="margin-top:22px">
+    <h2 style="margin-top:0">Add a member of staff</h2>
+    <p class="small muted" style="margin-top:-4px">They get an email with a sign-in link. Use their own work address — officers sign in and write from their scalegate.org email.</p>
+    <div class="grid g4">
+      <div class="field"><label class="lbl" for="n">Name</label><input id="n" type="text" name="name" required></div>
+      <div class="field"><label class="lbl" for="em">Email</label><input id="em" type="email" name="email" required placeholder="name@scalegate.org"></div>
+      <div class="field"><label class="lbl" for="t">Job title</label><input id="t" type="text" name="title" placeholder="e.g. Investment officer"></div>
+      <div class="field"><label class="lbl" for="o">Office</label><select id="o" name="office"><option value="">—</option><% for (const o of ST.OFFICES) { %><option><%= o %></option><% } %></select></div>
     </div>
-    <button class="btn" type="submit">Add and email them</button>
+    <div class="field"><label class="lbl">Role</label>
+      <div class="kindpick grid g3" style="gap:10px">
+        <% for (const r of ST.ORDER) { %>
+          <label style="margin:0"><input type="radio" name="role" value="<%= r %>" <%= r === 'officer' ? 'checked' : '' %> required><b><%= ST.ROLES[r].label %></b><div class="small muted" style="margin-top:4px"><%= ST.ROLES[r].summary %></div></label>
+        <% } %>
+      </div>
+    </div>
+    <button class="btn gold" type="submit">Add and email a sign-in link <span class="arr">→</span></button>
   </form>
+
+  <h2>What each role can do</h2>
+  <div class="card scrollx" style="padding:0">
+    <table class="list">
+      <thead><tr><th>Permission</th><% for (const r of ST.ORDER) { %><th style="text-align:center"><%= ST.ROLES[r].label %></th><% } %></tr></thead>
+      <tbody>
+        <% for (const [w, roles] of ST.MATRIX) { %>
+          <tr><td><%= w %></td><% for (const r of ST.ORDER) { %><td style="text-align:center"><%- roles.includes(r) ? '<span style="color:var(--leaf-ink);font-weight:700" aria-label="yes">✓</span>' : '<span class="muted" aria-label="no">—</span>' %></td><% } %></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <% if (log.length) { %>
+    <h2>Recent staff changes</h2>
+    <div class="card">
+      <% for (const l of log) { const d = l.detail || {}; %>
+        <div class="row small" style="padding:7px 0;border-bottom:1px solid var(--hairline)">
+          <span class="muted mono" style="min-width:150px"><%= when(l.at) %></span>
+          <span><b><%= l.actor_name || 'Someone' %></b> <%= what[l.action] || l.action %> <b><%= l.target_name || l.target_email || d.email || '' %></b><%= d.role && ['staff.added', 'staff.role', 'staff.set'].includes(l.action) ? ` — ${ST.label(d.role)}` : '' %></span>
+        </div>
+      <% } %>
+    </div>
+  <% } %>
 </div>
 <%- include('../partials/foot') %>

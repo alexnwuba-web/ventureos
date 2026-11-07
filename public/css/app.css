@@ -370,3 +370,6 @@ table.kv td:first-child { color: var(--muted); width: 44%; padding-right: 12px; 
 @media (max-width: 600px) { .scrollnav { right: 14px; bottom: 14px; } .scrollnav__btn { width: 42px; height: 42px; } }
 @media print { .scrollnav { display: none; } }
 .scrollnav__btn { box-shadow: 0 0 0 2px var(--paper-100), var(--shadow-float); }
+.top nav a, .top nav button { white-space: nowrap; }
+.top .wrap:has(nav form) .brand__by { display: none; }
+.top .wrap:has(nav form) nav a, .top .wrap:has(nav form) nav button { padding: 7px 8px; font-size: 13.5px; }

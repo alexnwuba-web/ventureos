@@ -140,7 +140,7 @@ async function move(app, to, actor, note) {
   if (!W.STATUSES[to]) throw err(400, 'Unknown status.');
   if (!W.canMove(app.status, to)) throw err(409, `An application that is ${W.STATUSES[app.status].label.toLowerCase()} cannot move to ${W.STATUSES[to].label.toLowerCase()}.`);
   if (W.isDecision(to) && !['admin', 'committee'].includes(actor.staff_role)) throw err(403, 'Decisions are recorded by the committee or an administrator.');
-  if (!W.isDecision(to) && actor.staff_role !== 'admin') throw err(403, 'Only an administrator moves applications between stages.');
+  if (!W.isDecision(to) && !['admin', 'officer'].includes(actor.staff_role)) throw err(403, 'Only an administrator or an officer moves applications between stages.');
   if (to === 'full_requested') await db.query('UPDATE applications SET stage = 2 WHERE id = $1', [app.id]);
   await db.query(`UPDATE applications SET status = $2, updated_at = now(), decided_at = CASE WHEN $3 THEN now() ELSE decided_at END,
     decision_note = CASE WHEN $3 THEN $4 ELSE decision_note END WHERE id = $1`, [app.id, to, W.isDecision(to), note || null]);

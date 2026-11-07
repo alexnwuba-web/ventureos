@@ -22,7 +22,7 @@
   document.addEventListener('input', function (e) { if (e.target.closest('form[data-guard]')) dirty = true; });
   document.addEventListener('submit', function (e) {
     dirty = false;
-    var c = e.target.getAttribute('data-confirm');
+    var c = (e.submitter && e.submitter.getAttribute('data-confirm')) || e.target.getAttribute('data-confirm');
     if (c && !window.confirm(c)) e.preventDefault();
   });
   window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });

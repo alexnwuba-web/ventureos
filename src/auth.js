@@ -71,7 +71,7 @@ async function load(req, res, next) {
       if (p) { req.sid = p.sid; delete p.sid; req.person = p; }
     } catch { /* stale cookie */ }
   }
-  req.staff = req.person && req.person.staff_role ? req.person.staff_role : null;
+  req.staff = req.person && req.person.staff_role && req.person.staff_active !== false ? req.person.staff_role : null;
   res.locals.person = req.person;
   res.locals.staff = req.staff;
   next();
