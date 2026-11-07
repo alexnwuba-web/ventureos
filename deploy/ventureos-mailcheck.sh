@@ -31,6 +31,16 @@ const t = nodemailer.createTransport({ host: process.env.SMTP_HOST, port, secure
     const { code } = await auth.sendCode(process.env.SIGNIN_EMAIL);
     console.log("\n== 4. Sign-in code for " + process.env.SIGNIN_EMAIL + " (works for 10 minutes): " + code);
   } catch (e) { console.log("\n== 4. Could not make a sign-in code: " + e.message); }
+  // What happened to the recent codes for this email (to explain a "wrong code").
+  try {
+    const { db } = require("./src/db");
+    const rows = await db.many(`SELECT to_char(created_at AT TIME ZONE $2, $3) AS made, to_char(expires_at AT TIME ZONE $2, $3) AS until,
+      used, attempts, expires_at < now() AS expired FROM login_codes WHERE email = $1 AND created_at > now() - make_interval(hours => 2) ORDER BY created_at DESC LIMIT 8`, [process.env.SIGNIN_EMAIL.toLowerCase(), "Africa/Lagos", "HH24:MI"]);
+    console.log("\n== 5. Codes for " + process.env.SIGNIN_EMAIL + " in the last 2 hours (Lagos time; newest first)");
+    rows.forEach((r, i) => console.log("   made " + r.made + "  valid until " + r.until + "  " + (i === 0 && !r.used && !r.expired ? "<- THE ONE TO USE" : r.used ? "cancelled or used" : r.expired ? "expired" : "") + (r.attempts ? "  (" + r.attempts + " wrong tries)" : "")));
+    const p = await db.one("SELECT staff_role, staff_active FROM people WHERE email = $1", [process.env.SIGNIN_EMAIL.toLowerCase()]).catch(() => null);
+    console.log("   account: " + (p ? "exists, role " + (p.staff_role || "none") : "not created yet (it is created at first sign-in)"));
+  } catch (e) { console.log("   (could not read the codes: " + e.message + ")"); }
   setTimeout(() => process.exit(0), 500);
 })();' 2>&1 | grep -v "is your VentureOS sign-in code\|^\[mail\]\|^Your sign-in code\|^It works for 10\|^VentureOS · \|^18A \|^scalegate\|^$"
 echo; echo "== Done."
