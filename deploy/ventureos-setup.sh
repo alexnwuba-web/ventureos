@@ -96,6 +96,13 @@ if [ -z "$(getenv SMTP_HOST)" ]; then
   echo "   WARNING: no email settings found. Sign-in codes cannot be emailed until SMTP_HOST, SMTP_PORT, SMTP_USER,"
   echo "   SMTP_PASS and SMTP_FROM are added to $ENVF. (Until then the codes are only written to the server log.)"
 fi
+# Mail servers such as Hostinger only accept mail sent from the address that logs in. If the "from" address
+# differs from SMTP_USER, send from SMTP_USER instead (otherwise every email is rejected with 553).
+u=$(getenv SMTP_USER); f=$(getenv SMTP_FROM | grep -oE '[^<" ]+@[^>" ]+' || true)
+if [ -n "$u" ] && [[ "$u" == *@* ]] && [ "${f,,}" != "${u,,}" ]; then
+  setenv SMTP_FROM "\"VentureOS <$u>\""
+  echo "   Email: now sending as $u (was ${f:-not set}; the mail server only accepts the address that logs in)."
+fi
 
 say "5. The code"
 id ventureos >/dev/null 2>&1 || useradd --system --home "$DATA" --shell /usr/sbin/nologin ventureos
