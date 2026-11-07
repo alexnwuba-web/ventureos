@@ -27,7 +27,7 @@ async function send({ to, subject, lines, link, icalEvent }) {
     ${lines.map((l) => `<p style="line-height:1.6;font-size:15px">${esc(l)}</p>`).join('')}
     ${link ? `<p style="margin:22px 0"><a href="${esc(link.url)}" style="display:inline-block;background:#c49a3c;color:#15120f;font-weight:600;padding:11px 20px;border-radius:999px;text-decoration:none">${esc(link.label)} &rarr;</a></p>` : ''}
     <p style="color:#6b6156;font-size:12px;border-top:1px solid #ddd2c1;padding-top:12px;margin-bottom:0">Make. Grow. Create. · ${esc(config.org.name)} · ${esc(config.org.address)}<br><a href="${esc(config.scalegate.africa.url)}" style="color:#7d5f1c">${esc(config.scalegate.africa.host)}</a> · <a href="${esc(config.scalegate.europe.url)}" style="color:#7d5f1c">${esc(config.scalegate.europe.host)}</a></p></div></div>`;
-  const msg = { from: config.smtp.from, to, subject, text, html, ...(icalEvent ? { icalEvent: { filename: 'invite.ics', ...icalEvent } } : {}) };
+  const msg = { from: config.smtp.from, replyTo: config.org.email, to, subject, text, html, ...(icalEvent ? { icalEvent: { filename: 'invite.ics', ...icalEvent } } : {}) };
   outbox.push(msg);
   if (outbox.length > 200) outbox.shift();
   const t = getTransport();
