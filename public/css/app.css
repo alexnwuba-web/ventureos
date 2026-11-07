@@ -358,3 +358,15 @@ table.kv td:first-child { color: var(--muted); width: 44%; padding-right: 12px; 
 @media (max-width: 600px) { .brand__by { font-size: 9.5px; padding-left: 8px; } }
 .sgcard p { max-width: calc(100% - 170px); }
 @media (max-width: 600px) { .sgcard p { max-width: none; } .sgcard::before, .sgcard::after { opacity: .35; } .sgbar__k { display: none; } .sgbar a { padding: 4px 9px; } }
+
+/* Up / down arrows (every page) */
+.scrollnav { position: fixed; right: 20px; bottom: 20px; z-index: 40; display: flex; flex-direction: column; gap: 8px; }
+.scrollnav__btn { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; text-decoration: none;
+  background: var(--ink); color: var(--paper-100); box-shadow: var(--shadow-float); border: 1px solid rgba(255,255,255,.08);
+  transition: transform var(--dur-quick) var(--ease-paper), opacity var(--dur-move), visibility var(--dur-move), background var(--dur-quick); }
+.scrollnav__btn:hover { background: var(--brass); color: var(--on-brass); transform: translateY(-2px); }
+.scrollnav__btn:focus-visible { box-shadow: var(--shadow-focus); }
+.scrollnav__btn.is-hidden { opacity: 0; visibility: hidden; transform: scale(.8); }
+@media (max-width: 600px) { .scrollnav { right: 14px; bottom: 14px; } .scrollnav__btn { width: 42px; height: 42px; } }
+@media print { .scrollnav { display: none; } }
+.scrollnav__btn { box-shadow: 0 0 0 2px var(--paper-100), var(--shadow-float); }
