@@ -17,6 +17,8 @@ module.exports = {
   sessionSecret: env.VENTUREOS_SESSION_SECRET || (prod ? null : 'dev-ventureos-session'),
   // Emails that are always administrators (the first staff). Others are made staff from Staff → People.
   admins: (env.VENTUREOS_ADMINS || 'alex@scalegate.org,alexnwuba@gmail.com').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
+  // Oxi languages: where the language picker and translation service are (oxi-group.com/oxi-lang/*); 'off' removes it.
+  langUrl: (env.OXI_LANG_URL || 'https://oxi-group.com').replace(/\/$/, ''),
   uploadsDir: env.VENTUREOS_UPLOADS || path.join(__dirname, '..', 'uploads'),
   uploadLimit: 20 * 1024 * 1024,
   smtp: {

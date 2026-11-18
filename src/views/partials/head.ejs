@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/static/css/app.css?v=<%= v %>">
   <link rel="icon" type="image/svg+xml" href="/static/img/ventureos-app-icon.svg">
   <script src="/static/js/brand.js?v=<%= v %>" defer></script>
+  <% const LU = locals.config && locals.config.langUrl; if (LU && LU !== 'off') { %><script defer src="<%= LU %>/oxi-lang/lang.js" data-api="<%= LU %>" data-me="/oxi-lang/me"></script><% } %>
 </head>
 <body id="top">
 <% const sgA = config.scalegate.africa, sgE = config.scalegate.europe; %>
@@ -29,6 +30,7 @@
   <div class="wrap">
     <div class="brand"><a class="brand__home" href="/" aria-label="VentureOS home"><img class="mark" src="/static/img/ventureos-mark-ink.svg" alt=""><b>Venture<i>OS</i></b></a><a class="brand__by" href="<%= sgA.url %>" target="_blank" rel="noopener">by ScaleGate Africa</a></div>
     <nav>
+      <span data-oxi-lang></span>
       <% if (person) { %>
         <% if (staff) { %>
           <a href="/staff" class="<%= path.startsWith('/staff/a') || path === '/staff' ? 'on' : '' %>">Applications</a>
