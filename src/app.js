@@ -48,6 +48,8 @@ function createApp() {
     }
     return router;
   };
+  // Oxi languages: the person's language, saved from the picker in the top menu (routes/lang.js).
+  app.use(wrap(require('./routes/lang')));
   app.use(wrap(require('./routes/public')));
   app.use(wrap(require('./routes/my')));
   app.use(wrap(require('./routes/staff')));
