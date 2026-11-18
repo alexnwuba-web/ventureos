@@ -6,6 +6,7 @@
   <title><%= title %> · VentureOS</title>
   <meta name="description" content="VentureOS by ScaleGate Africa — Make. Grow. Create. Apply for the VentureOS Center residency, equity, debt or grant funding.">
   <link rel="stylesheet" href="/static/css/app.css">
+  <% const LU = locals.config && locals.config.langUrl; if (LU && LU !== 'off') { %><script defer src="<%= LU %>/oxi-lang/lang.js" data-api="<%= LU %>" data-me="/oxi-lang/me"></script><% } %>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2314213d'/><rect x='11' y='11' width='10' height='10' fill='%23c8a14a' transform='rotate(45 16 16)'/></svg>">
 </head>
 <body>
@@ -13,6 +14,7 @@
   <div class="wrap">
     <a class="brand" href="/"><i></i><b>VentureOS</b><span>ScaleGate Africa</span></a>
     <nav>
+      <span data-oxi-lang></span>
       <% if (person) { %>
         <% if (staff) { %>
           <a href="/staff" class="<%= path.startsWith('/staff/a') || path === '/staff' ? 'on' : '' %>">Applications</a>

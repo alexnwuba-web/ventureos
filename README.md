@@ -109,3 +109,7 @@ VENTUREOS_TEST_DATABASE_URL=postgres://… npm test          # a throwaway datab
 
 Thresholds used by the first read (`debt_assumed_rate` 27%, `dscr_minimum` 1.25, `leverage_maximum` 3.5,
 `collateral_haircut` 30%) are rows in the `settings` table.
+
+## Languages (November 2026)
+
+VentureOS has the Oxi language picker in its top menu: English, Français, Español, 中文 (Mandarin), Italiano, Deutsch, Yorùbá, Igbo and Hausa. The picker and the page translation come from Oxi (`<script src="https://oxi-group.com/oxi-lang/lang.js">` in `src/views/partials/head.ejs`; `OXI_LANG_URL` changes the address, `off` removes it). The person's choice is kept in their profile (`people.lang`, migration `008_people_lang.sql`) through `GET/POST /oxi-lang/me` (`src/routes/lang.js`), so it follows them to every device. Test: `test/lang.test.js`.
