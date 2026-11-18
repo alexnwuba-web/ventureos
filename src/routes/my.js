@@ -191,7 +191,7 @@ r.post('/my/a/:ref/submit', async (req, res) => {
       to === 'submitted' ? `Thank you. We have received the initial submission for ${app.venture_name} (${app.ref}). We will screen it and let you know whether we would like to proceed to full documentation.`
         : to === 'full_submitted' ? `Thank you. We have received the full documentation for ${app.venture_name} (${app.ref}). It now goes to two independent reviewers.`
           : `Thank you. Your application ${app.ref} has been sent back to us with the information we asked for.`,
-      'We will write to you at each stage.'],
+      'We will write to you at each stage. While you wait, OxiAcademy, our learning partner, has courses and clinics for founders' + (config.ecosystem.oxiacademy.url ? `: ${config.ecosystem.oxiacademy.url}` : '.')],
     link: { label: 'See your application', url: `${config.baseUrl}/my/a/${app.ref}` } });
   const admins = await db.many(`SELECT email FROM people WHERE staff_role = 'admin'`);
   for (const a of admins) {

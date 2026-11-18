@@ -16,6 +16,11 @@ const S = require('../domain/scoring');
 const { analyse } = require('../domain/analysis');
 const { audit } = require('../lib/audit');
 const mail = require('../lib/mail');
+// Every outcome letter, a decline included, points the founder to OxiAcademy.
+const academyLine = (declined) => (declined
+  ? 'This is not the end of the road. OxiAcademy, our learning partner, has courses and clinics to help you keep building, and you are welcome to apply to VentureOS again.'
+  : 'OxiAcademy, our learning partner, has courses and clinics for founders, and supports programmes such as iDICE.')
+  + (config.ecosystem.oxiacademy.url ? ` ${config.ecosystem.oxiacademy.url}` : '');
 const P = require('../domain/portal');
 
 const r = express.Router();
@@ -23,6 +28,7 @@ r.use('/staff', requireStaff());
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const isAdmin = (req) => req.staff === 'admin';
+const canRun = (req) => ['admin', 'officer'].includes(req.staff);
 
 async function settings() {
   const out = {};
@@ -84,13 +90,13 @@ r.get('/staff/a/:ref', async (req, res) => {
     WHERE m.application_id = $1 ${req.staff === 'reviewer' ? 'AND m.internal' : ''} ORDER BY m.created_at`, [app.id]);
   const history = req.staff === 'reviewer' ? [] : await db.many(`SELECT au.*, p.name AS actor_name FROM audit au LEFT JOIN people p ON p.id = au.actor_id
     WHERE au.application_id = $1 ORDER BY au.at DESC LIMIT 200`, [app.id]);
-  const reviewersAvailable = isAdmin(req) ? await db.many(`SELECT id, name, email, staff_role FROM people WHERE staff_role IS NOT NULL ORDER BY name`) : [];
-  const cohorts = isAdmin(req) ? await db.many('SELECT * FROM cohorts ORDER BY created_at DESC') : [];
+  const reviewersAvailable = canRun(req) ? await db.many(`SELECT id, name, email, staff_role FROM people WHERE staff_role IS NOT NULL ORDER BY name`) : [];
+  const cohorts = canRun(req) ? await db.many('SELECT * FROM cohorts ORDER BY created_at DESC') : [];
   const canSeeAnswers = req.staff !== 'reviewer' || (app.assignment && app.assignment.conflict === 'none');
   const meetings = canSeeAnswers ? await P.meetingsOf(app.id) : [];
   const followups = canSeeAnswers ? await P.followupsOf(app.id) : { actions: [], requests: [] };
   res.render('staff/application', { title: `${app.venture_name} · ${app.ref}`, app, answers: canSeeAnswers ? answers : {}, canSeeAnswers, docs: canSeeAnswers ? docs : [],
-    ready, analysis, assignments, reviews, meetings, followups, P, canMeet: ['admin', 'committee'].includes(req.staff), mine, othersHidden, summaries, rubrics, messages, history, reviewersAvailable, cohorts,
+    ready, analysis, assignments, reviews, meetings, followups, P, canMeet: ['admin', 'officer', 'committee'].includes(req.staff), canRun: canRun(req), mine, othersHidden, summaries, rubrics, messages, history, reviewersAvailable, cohorts,
     sections: Q.sectionsFor(app.kinds, app.stage), docList: D.docsFor(app.kinds, answers, app.stage), PARTS: Q.PARTS, RUBRICS: S.RUBRICS,
     // A practical challenge is for residencies; due diligence is for funding requests.
     NEXT: (W.NEXT[app.status] || []).filter((t) => (t !== 'challenge' || app.kinds.includes('residency')) && (t !== 'due_diligence' || app.kinds.some((k) => k !== 'residency'))), Q, isAdmin: isAdmin(req), notice: req.query.n || null });
@@ -112,12 +118,13 @@ r.post('/staff/a/:ref/status', async (req, res) => {
       'Your application is now open for the full documentation: the remaining questions and documents, including the business background questionnaire, financial statements and tax returns. Sign in to see exactly what is needed, then send it when complete.']
     : to === 'info_requested'
     ? [`Dear ${app.applicant_name || 'founder'},`, `We need more information on your application ${app.ref} (${app.venture_name}):`, note, 'Your application is open again for changes. Update it and send it back to us.']
-    : [`Dear ${app.applicant_name || 'founder'},`, `Your application ${app.ref} (${app.venture_name}) has moved to: ${st.founder}.`, ...(note && W.isDecision(to) ? [note] : [])];
-  await mail.send({ to: app.applicant_email, subject: `VentureOS ${app.ref}: ${st.founder}`, lines, link: { label: 'See your application', url: `${config.baseUrl}/my/a/${app.ref}` } });
+    : [`Dear ${app.applicant_name || 'founder'},`, `Your application ${app.ref} (${app.venture_name}) has moved to: ${st.founder}.`, ...(note && W.isDecision(to) ? [note] : []),
+      ...(W.isDecision(to) ? [academyLine(to === 'declined')] : [])];
+  await mail.send({ replyTo: mail.officer(req.person), to: app.applicant_email, subject: `VentureOS ${app.ref}: ${st.founder}`, lines, link: { label: 'See your application', url: `${config.baseUrl}/my/a/${app.ref}` } });
   res.redirect(`/staff/a/${app.ref}?n=moved`);
 });
 
-r.post('/staff/a/:ref/assign', requireStaff('admin'), async (req, res) => {
+r.post('/staff/a/:ref/assign', requireStaff('admin', 'officer'), async (req, res) => {
   const app = await visible(req);
   const reviewer = await db.one('SELECT * FROM people WHERE id = $1 AND staff_role IS NOT NULL', [req.body.reviewer]);
   if (!reviewer) throw err(400, 'Choose a member of staff.');
@@ -130,7 +137,7 @@ r.post('/staff/a/:ref/assign', requireStaff('admin'), async (req, res) => {
   res.redirect(`/staff/a/${app.ref}#reviews`);
 });
 
-r.post('/staff/a/:ref/unassign', requireStaff('admin'), async (req, res) => {
+r.post('/staff/a/:ref/unassign', requireStaff('admin', 'officer'), async (req, res) => {
   const app = await visible(req);
   await db.query('DELETE FROM assignments WHERE application_id = $1 AND reviewer_id = $2', [app.id, req.body.reviewer]);
   await audit(req.person.id, app.id, 'reviewer.removed', { reviewer: req.body.reviewer });
@@ -181,14 +188,14 @@ r.post('/staff/a/:ref/message', async (req, res) => {
     await db.query('INSERT INTO messages (application_id, author_id, body, internal) VALUES ($1,$2,$3,$4)', [app.id, req.person.id, body, internal]);
     await audit(req.person.id, app.id, internal ? 'note' : 'message', null);
     if (!internal) {
-      await mail.send({ to: app.applicant_email, subject: `A message about your VentureOS application ${app.ref}`,
+      await mail.send({ replyTo: mail.officer(req.person), to: app.applicant_email, subject: `A message about your VentureOS application ${app.ref}`,
         lines: [`Dear ${app.applicant_name || 'founder'},`, body], link: { label: 'Reply in VentureOS', url: `${config.baseUrl}/my/a/${app.ref}#messages` } });
     }
   }
   res.redirect(`/staff/a/${app.ref}#messages`);
 });
 
-r.post('/staff/a/:ref/documents/:id', requireStaff('admin'), async (req, res) => {
+r.post('/staff/a/:ref/documents/:id', requireStaff('admin', 'officer'), async (req, res) => {
   const app = await visible(req);
   const status = ['received', 'accepted', 'rejected'].includes(req.body.status) ? req.body.status : 'received';
   await db.query('UPDATE documents SET status = $3, note = $4 WHERE id = $1 AND application_id = $2', [req.params.id, app.id, status, String(req.body.note || '').slice(0, 1000) || null]);
@@ -196,7 +203,7 @@ r.post('/staff/a/:ref/documents/:id', requireStaff('admin'), async (req, res) =>
   res.redirect(`/staff/a/${app.ref}#documents`);
 });
 
-r.post('/staff/a/:ref/cohort', requireStaff('admin'), async (req, res) => {
+r.post('/staff/a/:ref/cohort', requireStaff('admin', 'officer'), async (req, res) => {
   const app = await visible(req);
   await db.query('UPDATE applications SET cohort_id = $2 WHERE id = $1', [app.id, req.body.cohort || null]);
   await audit(req.person.id, app.id, 'cohort', { cohort: req.body.cohort || null });
@@ -213,7 +220,7 @@ r.post('/staff/a/:ref/veto', requireStaff('admin'), async (req, res) => {
 });
 
 // ── Meetings, follow-ups and document requests ──
-const canMeet = requireStaff('admin', 'committee');
+const canMeet = requireStaff('admin', 'officer', 'committee');
 r.post('/staff/a/:ref/meetings', canMeet, async (req, res) => {
   const app = await visible(req);
   await P.invite(app, req.person, req.body);
@@ -250,7 +257,7 @@ r.post('/staff/a/:ref/requests/:id', canMeet, async (req, res) => {
   res.redirect(`/staff/a/${app.ref}#followups`);
 });
 
-r.get('/staff/meetings', requireStaff('admin', 'committee'), async (req, res) => {
+r.get('/staff/meetings', requireStaff('admin', 'officer', 'committee'), async (req, res) => {
   const meetings = await db.many(`SELECT m.*, a.ref, v.name AS venture_name, p.name AS applicant_name FROM meetings m JOIN applications a ON a.id = m.application_id
     JOIN ventures v ON v.id = a.venture_id JOIN people p ON p.id = a.applicant_id
     WHERE m.starts_at > now() - interval '30 days' ORDER BY m.starts_at`);
@@ -300,11 +307,11 @@ r.post('/staff/site/interests', requireStaff('admin'), async (req, res) => {
 });
 
 // ── Partner enquiries ──
-r.get('/staff/partners', requireStaff('admin', 'committee'), async (req, res) => {
+r.get('/staff/partners', requireStaff('admin', 'officer', 'committee'), async (req, res) => {
   const list = await db.many(`SELECT * FROM partner_enquiries ORDER BY (status IN ('new','contacted','in_discussion')) DESC, created_at DESC LIMIT 300`);
   res.render('staff/partners', { title: 'Partner enquiries', list, PARTNER_INTERESTS: require('./public').PARTNER_INTERESTS });
 });
-r.post('/staff/partners/:id', requireStaff('admin'), async (req, res) => {
+r.post('/staff/partners/:id', requireStaff('admin', 'officer'), async (req, res) => {
   const status = ['new', 'contacted', 'in_discussion', 'agreed', 'closed'].includes(req.body.status) ? req.body.status : 'new';
   await db.query('UPDATE partner_enquiries SET status = $2, staff_note = $3, updated_at = now() WHERE id = $1', [req.params.id, status, String(req.body.staff_note || '').slice(0, 2000) || null]);
   await audit(req.person.id, null, 'partner.updated', { id: req.params.id, status });
@@ -312,32 +319,85 @@ r.post('/staff/partners/:id', requireStaff('admin'), async (req, res) => {
 });
 
 // ── People ──
+const ST = require('../domain/staff');
+const peopleBack = (msg, ok) => `/staff/people?${ok ? 'ok' : 'e'}=${encodeURIComponent(msg)}`;
+const clean = (v, n = 120) => String(v || '').trim().slice(0, n);
+async function invitation(p, role, by) {
+  await mail.send({ to: p.email, replyTo: mail.officer(by), subject: `You have been added to VentureOS as ${ST.label(role)}`,
+    lines: [`Dear ${p.name || 'colleague'},`, `${by.name || 'An administrator'} has added you to VentureOS, ScaleGate Africa's applications platform, as ${ST.label(role)}${p.staff_title ? ` (${p.staff_title})` : ''}.`,
+      `${ST.label(role)}: ${ST.ROLES[role].summary}`,
+      'There is no password: sign in with this email address and we will send you a six-digit code.'],
+    link: { label: 'Sign in to VentureOS', url: `${config.baseUrl}/signin?next=/staff` } });
+}
+// The last active administrator cannot be removed, suspended or changed to another role.
+async function lastAdmin(id) {
+  const r = await db.one(`SELECT count(*)::int AS n FROM people WHERE staff_role = 'admin' AND staff_active AND id <> $1`, [id]);
+  const me = await db.one(`SELECT staff_role, staff_active FROM people WHERE id = $1`, [id]);
+  return me && me.staff_role === 'admin' && me.staff_active && r.n === 0;
+}
+
 r.get('/staff/people', requireStaff('admin'), async (req, res) => {
-  const staff = await db.many(`SELECT p.*, (SELECT count(*) FROM assignments x WHERE x.reviewer_id = p.id)::int AS assigned FROM people p WHERE staff_role IS NOT NULL ORDER BY staff_role, name`);
+  const staff = await db.many(`SELECT p.*, (SELECT count(*) FROM assignments x WHERE x.reviewer_id = p.id)::int AS assigned
+    FROM people p WHERE staff_role IS NOT NULL ORDER BY staff_active DESC, array_position(ARRAY['admin','officer','committee','reviewer','finance'], staff_role), name`);
   const founders = await db.one(`SELECT count(*)::int AS n FROM people WHERE staff_role IS NULL`);
-  res.render('staff/people', { title: 'Staff', staffList: staff, founders: founders.n, error: req.query.e || null });
+  const log = await db.many(`SELECT au.*, a.name AS actor_name, t.name AS target_name, t.email AS target_email FROM audit au
+    LEFT JOIN people a ON a.id = au.actor_id LEFT JOIN people t ON t.id::text = au.detail->>'id'
+    WHERE au.action LIKE 'staff.%' ORDER BY au.at DESC LIMIT 15`);
+  res.render('staff/people', { title: 'Staff console', staffList: staff, founders: founders.n, log, ST, editing: req.query.edit || null,
+    error: req.query.e || null, ok: req.query.ok || null });
 });
 r.post('/staff/people', requireStaff('admin'), async (req, res) => {
   const email = normEmail(req.body.email);
-  const role = ['admin', 'reviewer', 'committee', 'finance'].includes(req.body.role) ? req.body.role : null;
-  if (!validEmail(email) || !role) return res.redirect('/staff/people?e=' + encodeURIComponent('Give a valid email and a role.'));
-  await db.query(`INSERT INTO people (email, name, staff_role) VALUES ($1,$2,$3) ON CONFLICT (email) DO UPDATE SET staff_role = EXCLUDED.staff_role,
-    name = CASE WHEN people.name = '' THEN EXCLUDED.name ELSE people.name END`, [email, String(req.body.name || '').trim().slice(0, 120), role]);
-  await audit(req.person.id, null, 'staff.set', { email, role });
-  await mail.send({ to: email, subject: 'You have been added to VentureOS', lines: [`You have been added to VentureOS (ScaleGate Africa) as ${role}.`, 'Sign in with this email address; we will send you a code.'],
-    link: { label: 'Sign in', url: `${config.baseUrl}/signin` } });
-  res.redirect('/staff/people');
+  const role = ST.isRole(req.body.role) ? req.body.role : null;
+  if (!validEmail(email) || !role) return res.redirect(peopleBack('Give a valid email address and a role.'));
+  const p = await db.one(`INSERT INTO people (email, name, staff_role, staff_title, staff_office, staff_active, staff_since) VALUES ($1,$2,$3,$4,$5,true,now())
+    ON CONFLICT (email) DO UPDATE SET staff_role = EXCLUDED.staff_role, staff_title = COALESCE(NULLIF(EXCLUDED.staff_title, ''), people.staff_title),
+      staff_office = COALESCE(NULLIF(EXCLUDED.staff_office, ''), people.staff_office), staff_active = true, staff_since = COALESCE(people.staff_since, now()),
+      name = CASE WHEN people.name = '' THEN EXCLUDED.name ELSE people.name END RETURNING *`,
+  [email, clean(req.body.name), role, clean(req.body.title), ST.OFFICES.includes(req.body.office) ? req.body.office : null]);
+  await audit(req.person.id, null, 'staff.added', { id: p.id, email, role });
+  await invitation(p, role, req.person);
+  res.redirect(peopleBack(`${p.name || email} added as ${ST.label(role)} and emailed a sign-in link.`, true));
 });
-r.post('/staff/people/:id/role', requireStaff('admin'), async (req, res) => {
-  if (req.params.id === req.person.id) return res.redirect('/staff/people?e=' + encodeURIComponent('You cannot change your own role.'));
-  const role = ['admin', 'reviewer', 'committee', 'finance'].includes(req.body.role) ? req.body.role : null;
-  await db.query('UPDATE people SET staff_role = $2 WHERE id = $1', [req.params.id, role]);
-  await audit(req.person.id, null, 'staff.set', { id: req.params.id, role });
-  res.redirect('/staff/people');
+r.post('/staff/people/:id', requireStaff('admin'), async (req, res) => {
+  const p = await db.one('SELECT * FROM people WHERE id = $1 AND staff_role IS NOT NULL', [req.params.id]);
+  if (!p) throw err(404, 'That member of staff was not found.');
+  const act = String(req.body.action || 'save');
+  const self = p.id === req.person.id;
+  if (act === 'save') {
+    const role = ST.isRole(req.body.role) ? req.body.role : p.staff_role;
+    if (role !== p.staff_role && self) return res.redirect(peopleBack('You cannot change your own role. Ask another administrator.'));
+    if (role !== p.staff_role && await lastAdmin(p.id)) return res.redirect(peopleBack('This is the last active administrator. Make someone else an administrator first.'));
+    await db.query('UPDATE people SET name = $2, staff_title = $3, staff_office = $4, staff_role = $5 WHERE id = $1',
+      [p.id, clean(req.body.name) || p.name, clean(req.body.title) || null, ST.OFFICES.includes(req.body.office) ? req.body.office : null, role]);
+    await audit(req.person.id, null, role !== p.staff_role ? 'staff.role' : 'staff.edited', { id: p.id, from: p.staff_role, role });
+    return res.redirect(peopleBack(`${clean(req.body.name) || p.name || p.email} saved${role !== p.staff_role ? ` — now ${ST.label(role)}` : ''}.`, true));
+  }
+  if (act === 'suspend' || act === 'remove') {
+    if (self) return res.redirect(peopleBack('You cannot suspend or remove yourself.'));
+    if (await lastAdmin(p.id)) return res.redirect(peopleBack('This is the last active administrator. Make someone else an administrator first.'));
+    if (act === 'suspend') await db.query('UPDATE people SET staff_active = false WHERE id = $1', [p.id]);
+    else await db.query('UPDATE people SET staff_role = NULL, staff_active = true WHERE id = $1', [p.id]);
+    await db.query('DELETE FROM sessions WHERE person_id = $1', [p.id]);
+    await audit(req.person.id, null, act === 'suspend' ? 'staff.suspended' : 'staff.removed', { id: p.id, role: p.staff_role });
+    return res.redirect(peopleBack(act === 'suspend' ? `${p.name || p.email} is suspended and signed out. Their work stays on record.`
+      : `${p.name || p.email} is no longer staff. Their reviews and messages stay on record.`, true));
+  }
+  if (act === 'reactivate') {
+    await db.query('UPDATE people SET staff_active = true WHERE id = $1', [p.id]);
+    await audit(req.person.id, null, 'staff.reactivated', { id: p.id, role: p.staff_role });
+    return res.redirect(peopleBack(`${p.name || p.email} is active again.`, true));
+  }
+  if (act === 'invite') {
+    await invitation(p, p.staff_role, req.person);
+    await audit(req.person.id, null, 'staff.invited', { id: p.id });
+    return res.redirect(peopleBack(`Sign-in link sent again to ${p.email}.`, true));
+  }
+  throw err(400, 'Unknown action.');
 });
 
 // ── Cohorts (announced on the front page when public) ──
-r.get('/staff/cohorts', requireStaff('admin', 'committee'), async (req, res) => {
+r.get('/staff/cohorts', requireStaff('admin', 'officer', 'committee'), async (req, res) => {
   const cohorts = await db.many(`SELECT c.*, k.name AS campus_name, (SELECT count(*) FROM applications a WHERE a.cohort_id = c.id)::int AS apps,
     (SELECT count(*) FROM applications a WHERE a.cohort_id = c.id AND a.status = 'accepted')::int AS accepted FROM cohorts c LEFT JOIN campuses k ON k.id = c.campus_id ORDER BY c.created_at DESC`);
   res.render('staff/cohorts', { title: 'Cohorts', cohorts, campuses: await db.many('SELECT id, name FROM campuses ORDER BY sort, name') });

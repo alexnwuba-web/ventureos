@@ -124,7 +124,7 @@
                   <div class="row small" style="margin-bottom:6px">
                     <a href="/files/<%= x.id %>" target="_blank"><%= x.filename %></a> <span class="muted"><%= Math.round((x.size || 0) / 1024) %> KB · <%= date(x.created_at) %></span>
                     <span class="badge <%= x.status === 'accepted' ? 'green' : x.status === 'rejected' ? 'red' : 'muted' %>"><%= x.status %></span>
-                    <% if (isAdmin) { %>
+                    <% if (canRun) { %>
                       <form method="post" action="/staff/a/<%= app.ref %>/documents/<%= x.id %>" class="row">
                         <select name="status" style="width:auto;padding:4px 6px"><option value="received">Received</option><option value="accepted">Accept</option><option value="rejected">Ask to replace</option></select>
                         <input type="text" name="note" placeholder="Note to founder" style="width:170px;padding:4px 6px" value="<%= x.note || '' %>">
@@ -356,7 +356,7 @@
           <h3>Move to</h3>
           <form method="post" action="/staff/a/<%= app.ref %>/status">
             <div class="field"><select name="to" required>
-              <% for (const t of NEXT) { const dec = ['accepted','offer','waitlisted','declined'].includes(t); if (staff === 'committee' && !dec) continue; if (staff !== 'admin' && staff !== 'committee') continue; %>
+              <% for (const t of NEXT) { const dec = ['accepted','offer','waitlisted','declined'].includes(t); if (staff === 'committee' && !dec) continue; if (staff === 'officer' && dec) continue; if (!['admin', 'officer', 'committee'].includes(staff)) continue; %>
                 <option value="<%= t %>"><%= t === 'full_requested' ? 'Invite to full documentation (Part 2)' : t === 'review' && app.stage === 1 ? 'Independent review on Part 1 only (residency)' : status(t).label %></option><% } %>
             </select></div>
             <div class="field"><textarea name="note" placeholder="Note — sent to the founder when asking for information or recording a decision"></textarea></div>
@@ -370,9 +370,9 @@
         <% if (!assignments.length) { %><p class="small muted">None assigned. Two independent reviewers per application.</p><% } %>
         <% for (const x of assignments) { %>
           <div class="row between small" style="padding:4px 0"><span><%= x.name || x.email %> <% if (x.conflict === 'none') { %><span class="badge green">no conflict</span><% } else if (x.conflict) { %><span class="badge red">conflict</span><% } else { %><span class="badge muted">to declare</span><% } %></span>
-            <% if (isAdmin) { %><form method="post" action="/staff/a/<%= app.ref %>/unassign"><input type="hidden" name="reviewer" value="<%= x.reviewer_id %>"><button class="linkbtn muted" type="submit">remove</button></form><% } %></div>
+            <% if (canRun) { %><form method="post" action="/staff/a/<%= app.ref %>/unassign"><input type="hidden" name="reviewer" value="<%= x.reviewer_id %>"><button class="linkbtn muted" type="submit">remove</button></form><% } %></div>
         <% } %>
-        <% if (isAdmin) { const free = reviewersAvailable.filter((p) => !assignments.some((x) => x.reviewer_id === p.id)); %>
+        <% if (canRun) { const free = reviewersAvailable.filter((p) => !assignments.some((x) => x.reviewer_id === p.id)); %>
           <% if (free.length) { %>
             <form method="post" action="/staff/a/<%= app.ref %>/assign" class="row" style="margin-top:10px">
               <select name="reviewer" style="flex:1"><% for (const p of free) { %><option value="<%= p.id %>"><%= p.name || p.email %> (<%= p.staff_role %>)</option><% } %></select>
@@ -382,7 +382,7 @@
         <% } %>
       </div>
 
-      <% if (isAdmin && app.kinds.includes('residency')) { %>
+      <% if (canRun && app.kinds.includes('residency')) { %>
         <div class="card">
           <h3>Cohort</h3>
           <form method="post" action="/staff/a/<%= app.ref %>/cohort" class="row">

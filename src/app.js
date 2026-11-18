@@ -5,6 +5,20 @@ const cookieParser = require('cookie-parser');
 const config = require('./config');
 const auth = require('./auth');
 const helpers = require('./lib/view');
+const fs = require('fs');
+const crypto = require('crypto');
+
+// A fingerprint of the stylesheets and scripts, added to their links (?v=…) so browsers fetch the new
+// files after every update instead of keeping an old copy for a day.
+function assetVersion() {
+  const h = crypto.createHash('sha1');
+  for (const dir of ['css', 'js']) {
+    const d = path.join(__dirname, '..', 'public', dir);
+    for (const f of fs.readdirSync(d).sort()) h.update(fs.readFileSync(path.join(d, f)));
+  }
+  return h.digest('hex').slice(0, 10);
+}
+const ASSET_V = assetVersion();
 
 function createApp() {
   if (!config.sessionSecret) throw new Error('VENTUREOS_SESSION_SECRET must be set in production.');
@@ -35,7 +49,7 @@ function createApp() {
   });
 
   app.use(auth.load);
-  app.use((req, res, next) => { Object.assign(res.locals, helpers, { path: req.path, config }); next(); });
+  app.use((req, res, next) => { Object.assign(res.locals, helpers, { path: req.path, config, v: ASSET_V }); next(); });
 
   // Express 4 does not pass async errors on by itself.
   const wrap = (router) => {

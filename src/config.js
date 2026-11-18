@@ -26,5 +26,16 @@ module.exports = {
     from: env.SMTP_FROM || 'VentureOS <no-reply@scalegate.org>',
   },
   // Shown in emails and on pages.
+  // ScaleGate's own sites: ScaleGate Africa (Lagos hub) for African visitors, ScaleGate (The Hague) for Europeans.
+  scalegate: {
+    africa: { name: 'ScaleGate Africa', url: env.SCALEGATE_AFRICA_URL || 'https://scalegate.africa', host: 'scalegate.africa' },
+    europe: { name: 'ScaleGate', url: env.SCALEGATE_URL || 'https://scalegate.org', host: 'scalegate.org' },
+  },
+  // Partners VentureOS promotes. OxiAi's agents help process applications and programmes (people decide);
+  // OxiAcademy supports entrepreneurs and programmes such as iDICE. Both link to oxiai.com, where all OxiAi and OxiAcademy information lives.
+  ecosystem: {
+    oxiai: { name: 'OxiAi', url: env.OXIAI_URL === undefined ? 'https://oxiai.com' : env.OXIAI_URL },
+    oxiacademy: { name: 'OxiAcademy', url: env.OXIACADEMY_URL === undefined ? 'https://oxiai.com' : env.OXIACADEMY_URL },
+  },
   org: { name: 'ScaleGate Africa', product: 'VentureOS', address: '18A Sinari Daranijo Street, Victoria Island, Lagos', email: env.VENTUREOS_CONTACT || 'alex@scalegate.org' },
 };

@@ -18,7 +18,8 @@ const future = (days, hh = '10:00') => { const d = new Date(Date.now() + days * 
 
 test('front page shows the programme, cohorts, campus and projects that interest us', async () => {
   const r = await request(app).get('/').expect(200);
-  assert.match(r.text, /About VentureOS/);
+  assert.match(r.text, /About <em>VentureOS<\/em>/);
+  assert.match(r.text, /OxiAi/); assert.match(r.text, /OxiAcademy/); assert.match(r.text, /people decide/); assert.match(r.text, /https:\/\/scalegate\.africa/); assert.match(r.text, /https:\/\/scalegate\.org/);
   assert.match(r.text, /Cohort 0/);
   assert.match(r.text, /VentureOS Center/);
   assert.match(r.text, /Projects that interest us/);
@@ -33,6 +34,7 @@ test('a meeting: invitation, reply, calendar file, record and follow-ups, reques
   await founder.post(`/staff/a/${ref}/meetings`).type('form').send({ starts_at: future(3) }).expect(403);
   await admin.post(`/staff/a/${ref}/meetings`).type('form').send({ kind: 'initial', starts_at: future(3), duration_min: '45', mode: 'in_person', agenda: 'Valuation basis' }).expect(302);
   const invite = mail.outbox.filter((m) => m.to === 'tola@example.ng' && /Invitation/.test(m.subject)).pop();
+  assert.match(invite.replyTo || '', /@scalegate\.test/); // replies go to the officer who sent the invitation
   assert.ok(invite.icalEvent && /BEGIN:VCALENDAR/.test(invite.icalEvent.content), 'calendar invitation attached');
   assert.match(invite.text, /Sinari Daranijo/);
 
@@ -158,7 +160,7 @@ test('integrity veto, the ten-working-day answer date, and the triage traction r
 
 test('VentureOS as the way into ScaleGate: programmes, Startup Visa checks, partner enquiries', async () => {
   let r = await request(app).get('/').expect(200);
-  assert.match(r.text, /ScaleGate programmes — apply through VentureOS/);
+  assert.match(r.text, /ScaleGate programmes — <em>apply through VentureOS<\/em>/);
   for (const t of ['Zero to Gate', 'Gate to Scale', 'Dutch Startup Visa', 'Venture Philanthropy', 'Creative and Cultural Industries', 'Scale in Africa']) assert.match(r.text, new RegExp(t));
   assert.match(r.text, /not a visa or immigration agency/);
   assert.match(r.text, /African companies ready to grow in Europe/);
@@ -188,4 +190,36 @@ test('VentureOS as the way into ScaleGate: programmes, Startup Visa checks, part
   r = await admin.get('/staff/partners').expect(200);
   assert.match(r.text, /Sponsor young founders/);
   await f.get('/staff/partners').expect(403);
+});
+
+test('staff console: officers run applications but cannot decide or manage staff; suspended staff lose access', async () => {
+  await admin.post('/staff/people').type('form').send({ name: 'Ada Officer', email: 'ada@scalegate.test', title: 'Investment officer', office: 'Lagos', role: 'officer' }).expect(302);
+  const row = await db.one(`SELECT * FROM people WHERE email = 'ada@scalegate.test'`);
+  assert.equal(row.staff_role, 'officer'); assert.equal(row.staff_title, 'Investment officer'); assert.equal(row.staff_office, 'Lagos');
+  assert.ok(mail.outbox.some((m) => m.to === 'ada@scalegate.test' && /as Officer/.test(m.subject)));
+  const page = await admin.get('/staff/people').expect(200);
+  assert.match(page.text, /Ada Officer/); assert.match(page.text, /What each role can do/);
+
+  const ada = await signIn(app, 'ada@scalegate.test', 'Ada Officer');
+  await ada.get('/staff').expect(200);
+  await ada.get('/staff/people').expect(403);
+  await ada.get('/staff/events').expect(200);
+  // officers move stages but do not record decisions
+  await db.query(`UPDATE applications SET status = 'screening', vetoed = false WHERE ref = $1`, [ref]);
+  await ada.post(`/staff/a/${ref}/status`).type('form').send({ to: 'declined', note: 'no' }).expect(403);
+  await ada.post(`/staff/a/${ref}/status`).type('form').send({ to: 'full_requested' }).expect(302);
+
+  // the last administrator cannot be suspended, and nobody can change their own role
+  const me = await db.one(`SELECT id FROM people WHERE email = 'admin@scalegate.test'`);
+  const self = await admin.post(`/staff/people/${me.id}`).type('form').send({ action: 'save', role: 'reviewer', name: 'Admin' }).expect(302);
+  assert.match(decodeURIComponent(self.headers.location), /cannot change your own role/);
+
+  // suspend: signed out, no staff access; reactivate restores it
+  await admin.post(`/staff/people/${row.id}`).type('form').send({ action: 'suspend' }).expect(302);
+  const ada2 = await signIn(app, 'ada@scalegate.test', 'Ada Officer');
+  await ada2.get('/staff').expect(403);
+  await admin.post(`/staff/people/${row.id}`).type('form').send({ action: 'reactivate' }).expect(302);
+  await ada2.get('/staff').expect(200);
+  const log = await admin.get('/staff/people').expect(200);
+  assert.match(log.text, /suspended/); assert.match(log.text, /reactivated/);
 });

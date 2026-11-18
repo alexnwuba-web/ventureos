@@ -1,6 +1,8 @@
 <%- include('../partials/head') %>
-<div class="wrap" style="max-width:480px">
-  <div class="card">
+<div class="signin-wrap">
+  <div class="art"><div data-emblem='{"size":170,"night":true,"drawn":false,"light":true,"breathing":true}'></div><p class="q">Make. Grow. <i>Create.</i></p></div>
+  <div class="form"><div>
+    <p class="eyebrow">Your VentureOS portal</p>
     <h1>Check your email</h1>
     <p class="muted">We sent a six-digit code to <b><%= email %></b>. It works for 10 minutes. If it has not arrived, look in your spam folder.</p>
     <% if (error) { %><div class="notice err"><%= error %></div><% } %>
@@ -16,6 +18,6 @@
       <input type="hidden" name="email" value="<%= email %>"><input type="hidden" name="next" value="<%= next %>">
       Didn't get it? <button class="linkbtn" type="submit">Send a new code</button> · <a href="/signin">Use a different email</a>
     </form>
-  </div>
+  </div></div>
 </div>
 <%- include('../partials/foot') %>

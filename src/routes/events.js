@@ -87,8 +87,8 @@ r.get('/events/:id/deck/:sid', signedIn, async (req, res) => {
 });
 
 // ── Staff ──
-const admin = requireStaff('admin');
-r.get('/staff/events', requireStaff('admin', 'committee'), async (req, res) => {
+const admin = requireStaff('admin', 'officer');
+r.get('/staff/events', requireStaff('admin', 'officer', 'committee'), async (req, res) => {
   const events = await db.many(`SELECT e.*, (SELECT count(*) FROM event_registrations x WHERE x.event_id = e.id AND NOT x.cancelled)::int AS registered,
     (SELECT count(*) FROM event_submissions s WHERE s.event_id = e.id AND s.status <> 'withdrawn')::int AS submissions,
     (SELECT count(*) FROM event_submissions s WHERE s.event_id = e.id AND s.status IN ('selected','presented'))::int AS selected
@@ -96,12 +96,12 @@ r.get('/staff/events', requireStaff('admin', 'committee'), async (req, res) => {
   res.render('staff/events', { title: 'Presentations and meetups', events, E, P });
 });
 r.post('/staff/events', admin, async (req, res) => { const e = await E.create(req.person, req.body); res.redirect(`/staff/events/${e.id}`); });
-r.get('/staff/events/:id', requireStaff('admin', 'committee'), async (req, res) => {
+r.get('/staff/events/:id', requireStaff('admin', 'officer', 'committee'), async (req, res) => {
   const e = await E.get(req.params.id);
   const subs = await db.many(`SELECT s.*, p.name AS founder_name, p.email AS founder_email, a.ref FROM event_submissions s JOIN people p ON p.id = s.person_id
     LEFT JOIN applications a ON a.id = s.application_id WHERE s.event_id = $1 ORDER BY (s.status = 'selected') DESC, s.created_at`, [e.id]);
   const regs = await db.many('SELECT * FROM event_registrations WHERE event_id = $1 ORDER BY cancelled, role, created_at', [e.id]);
-  res.render('staff/event', { title: e.title, e, E, P, subs, regs, isAdmin: req.staff === 'admin' });
+  res.render('staff/event', { title: e.title, e, E, P, subs, regs, isAdmin: ['admin', 'officer'].includes(req.staff) });
 });
 r.post('/staff/events/:id', admin, async (req, res) => { await E.update(req.person, req.params.id, req.body); res.redirect(`/staff/events/${req.params.id}`); });
 r.post('/staff/events/:id/copy', admin, async (req, res) => { const n = await E.copyToNextMonth(req.person, req.params.id); res.redirect(`/staff/events/${n.id}`); });
@@ -109,7 +109,7 @@ r.post('/staff/events/:id/submissions/:sid', admin, async (req, res) => {
   await E.setSubmission(req.person, req.params.id, req.params.sid, req.body);
   res.redirect(`/staff/events/${req.params.id}#submissions`);
 });
-r.get('/staff/events/:id/registrations.csv', requireStaff('admin', 'committee'), async (req, res) => {
+r.get('/staff/events/:id/registrations.csv', requireStaff('admin', 'officer', 'committee'), async (req, res) => {
   const e = await E.get(req.params.id);
   const rows = await db.many('SELECT name, email, phone, organisation, role, interests, cancelled, created_at FROM event_registrations WHERE event_id = $1 ORDER BY created_at', [e.id]);
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;

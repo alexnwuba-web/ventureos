@@ -21,7 +21,7 @@ set /p DOMAIN=" Web address - press Enter for ventureos.africa (or to keep the c
 set "LOG=%~dp0ventureos-log.txt"
 echo.
 echo  Sending the code and setting up...
-tar -czf - -C "%ROOT%" --exclude=node_modules --exclude=uploads --exclude=.git . | ssh ubuntu@102.204.2.229 "sudo bash -c 'rm -rf /tmp/ventureos-src && mkdir -p /tmp/ventureos-src && tar -xzf - -C /tmp/ventureos-src && DOMAIN=%DOMAIN% bash /tmp/ventureos-src/deploy/ventureos-setup.sh'" 2>&1 | powershell -NoProfile -Command "$input | Tee-Object -FilePath '%LOG%'"
+tar -czf - -C "%ROOT%" --exclude=node_modules --exclude=uploads --exclude=.git . | ssh ubuntu@102.204.2.229 "sudo bash -c 'rm -rf /tmp/ventureos-src && mkdir -p /tmp/ventureos-src && tar --warning=no-unknown-keyword -xzf - -C /tmp/ventureos-src && DOMAIN=%DOMAIN% bash /tmp/ventureos-src/deploy/ventureos-setup.sh'" 2>&1 | powershell -NoProfile -Command "$input | Tee-Object -FilePath '%LOG%'"
 echo.
 echo  Finished. The last line should say VENTUREOS IS LIVE (or tell you the DNS record to add).
 echo  Everything above is saved in ventureos-log.txt in this folder.

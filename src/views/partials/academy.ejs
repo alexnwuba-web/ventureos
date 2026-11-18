@@ -1,0 +1,6 @@
+<% const ac = config.ecosystem.oxiacademy; const msg = typeof academyText !== 'undefined' ? academyText : 'Courses and clinics for founders at every stage — and support for entrepreneurship programmes such as iDICE.'; %>
+<div class="academy vos-reveal">
+  <div data-emblem='{"size":40,"drawn":true}' aria-hidden="true"></div>
+  <div><span class="k">Learn with OxiAcademy</span><p><%= msg %></p></div>
+  <% if (ac.url) { %><a class="btn small ghost" href="<%= ac.url %>" target="_blank" rel="noopener">Visit OxiAcademy <span class="arr">→</span></a><% } %>
+</div>

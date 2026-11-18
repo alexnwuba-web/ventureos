@@ -72,7 +72,7 @@ async function invite(app, staff, body) {
     mode === 'in_person' ? (text(body.location, 300) || config.org.address) : null, text(body.video_link, 500) || null, text(body.agenda) || null,
     text(body.with_staff, 300) || null, body.follows_id || null, staff.id]);
   await audit(staff.id, app.id, 'meeting.invited', { id: m.id, title: m.title, at: m.starts_at });
-  await mail.send({ to: app.applicant_email, subject: `Invitation: ${m.title} with ScaleGate Africa (${app.ref})`,
+  await mail.send({ replyTo: typeof staff !== 'undefined' ? mail.officer(staff) : undefined, to: app.applicant_email, subject: `Invitation: ${m.title} with ScaleGate Africa (${app.ref})`,
     lines: [`Dear ${app.applicant_name || 'founder'},`, `ScaleGate Africa would like to meet you about ${app.venture_name}.`, ...meetingLines(m),
       'Please accept, decline or ask for another time in your VentureOS portal. A calendar invitation is attached.'],
     link: { label: 'Reply to the invitation', url: `${config.baseUrl}/my/a/${app.ref}/meetings` }, icalEvent: { method: 'REQUEST', content: ics(m, app) } });
@@ -92,7 +92,7 @@ async function update(app, staff, id, body) {
     [m.id, app.id, starts, Math.min(480, Math.max(15, Number(body.duration_min) || m.duration_min)), mode,
       mode === 'in_person' ? (text(body.location, 300) || m.location || config.org.address) : null, text(body.video_link, 500) || m.video_link, text(body.agenda)]);
     await audit(staff.id, app.id, 'meeting.rescheduled', { id: m.id, at: u.starts_at });
-    await mail.send({ to: app.applicant_email, subject: `New time: ${u.title} with ScaleGate Africa (${app.ref})`,
+    await mail.send({ replyTo: typeof staff !== 'undefined' ? mail.officer(staff) : undefined, to: app.applicant_email, subject: `New time: ${u.title} with ScaleGate Africa (${app.ref})`,
       lines: [`Dear ${app.applicant_name || 'founder'},`, 'We have set a new time for our meeting.', ...meetingLines(u), 'Please confirm it in your VentureOS portal.'],
       link: { label: 'Reply', url: `${config.baseUrl}/my/a/${app.ref}/meetings` }, icalEvent: { method: 'REQUEST', content: ics(u, app) } });
     return u;
@@ -100,7 +100,7 @@ async function update(app, staff, id, body) {
   if (action === 'cancel') {
     const u = await db.one(`UPDATE meetings SET status = 'cancelled', updated_at = now() WHERE id = $1 RETURNING *`, [m.id]);
     await audit(staff.id, app.id, 'meeting.cancelled', { id: m.id });
-    await mail.send({ to: app.applicant_email, subject: `Cancelled: ${m.title} (${app.ref})`,
+    await mail.send({ replyTo: typeof staff !== 'undefined' ? mail.officer(staff) : undefined, to: app.applicant_email, subject: `Cancelled: ${m.title} (${app.ref})`,
       lines: [`Dear ${app.applicant_name || 'founder'},`, `The meeting on ${whenLagos(m.starts_at)} has been cancelled.`, ...(body.reason ? [text(body.reason)] : []), 'We will be in touch about next steps.'],
       icalEvent: { method: 'CANCEL', content: ics(u, app, 'CANCEL') } });
     return u;
@@ -116,7 +116,7 @@ async function update(app, staff, id, body) {
     for (const d of lines(body.documents)) await requestDocument(app, staff, { title: d, due_on: due, meeting_id: m.id }, false);
     await audit(staff.id, app.id, 'meeting.held', { id: m.id });
     if (u.summary || lines(body.founder_actions).length || lines(body.documents).length) {
-      await mail.send({ to: app.applicant_email, subject: `Follow-up from our meeting (${app.ref})`,
+      await mail.send({ replyTo: typeof staff !== 'undefined' ? mail.officer(staff) : undefined, to: app.applicant_email, subject: `Follow-up from our meeting (${app.ref})`,
         lines: [`Dear ${app.applicant_name || 'founder'},`, `Thank you for meeting us on ${whenLagos(m.starts_at)}.`, ...(u.summary ? [u.summary] : []),
           ...(lines(body.founder_actions).length ? ['Agreed next steps for you:', ...lines(body.founder_actions).map((x) => `• ${x}`)] : []),
           ...(lines(body.documents).length ? ['Documents we asked for:', ...lines(body.documents).map((x) => `• ${x}`)] : []),
@@ -156,7 +156,7 @@ async function addAction(app, staff, body, notify = true) {
     [app.id, body.meeting_id || null, b, body.owner === 'scalegate' ? 'scalegate' : 'founder', day(body.due_on), staff.id]);
   await audit(staff.id, app.id, 'action.added', { id: a.id, owner: a.owner });
   if (notify && a.owner === 'founder') {
-    await mail.send({ to: app.applicant_email, subject: `A next step for ${app.venture_name} (${app.ref})`,
+    await mail.send({ replyTo: typeof staff !== 'undefined' ? mail.officer(staff) : undefined, to: app.applicant_email, subject: `A next step for ${app.venture_name} (${app.ref})`,
       lines: [`Dear ${app.applicant_name || 'founder'},`, b, ...(a.due_on ? [`Due by ${a.due_on}.`] : [])], link: { label: 'Open your portal', url: `${config.baseUrl}/my/a/${app.ref}/followups` } });
   }
   return a;
@@ -177,7 +177,7 @@ async function requestDocument(app, staff, body, notify = true) {
     [app.id, body.meeting_id || null, title, text(body.description, 2000) || null, day(body.due_on), staff.id]);
   await audit(staff.id, app.id, 'request.added', { id: r.id, title });
   if (notify) {
-    await mail.send({ to: app.applicant_email, subject: `Document requested: ${title} (${app.ref})`,
+    await mail.send({ replyTo: typeof staff !== 'undefined' ? mail.officer(staff) : undefined, to: app.applicant_email, subject: `Document requested: ${title} (${app.ref})`,
       lines: [`Dear ${app.applicant_name || 'founder'},`, `Please upload: ${title}.`, ...(r.description ? [r.description] : []), ...(r.due_on ? [`Due by ${r.due_on}.`] : [])],
       link: { label: 'Upload it in your portal', url: `${config.baseUrl}/my/a/${app.ref}/followups` } });
   }

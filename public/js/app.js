@@ -22,7 +22,7 @@
   document.addEventListener('input', function (e) { if (e.target.closest('form[data-guard]')) dirty = true; });
   document.addEventListener('submit', function (e) {
     dirty = false;
-    var c = e.target.getAttribute('data-confirm');
+    var c = (e.submitter && e.submitter.getAttribute('data-confirm')) || e.target.getAttribute('data-confirm');
     if (c && !window.confirm(c)) e.preventDefault();
   });
   window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
@@ -37,4 +37,22 @@
     }
     tbl.addEventListener('input', calc); calc();
   });
+})();
+
+/* Up / down arrows: up appears once you have scrolled; down hides when you reach the bottom. */
+(function () {
+  var up = document.querySelector('[data-scroll="top"]'), down = document.querySelector('[data-scroll="bottom"]');
+  if (!up || !down) return;
+  var smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function go(y) { window.scrollTo({ top: y, behavior: smooth ? 'smooth' : 'auto' }); }
+  up.addEventListener('click', function (e) { e.preventDefault(); go(0); });
+  down.addEventListener('click', function (e) { e.preventDefault(); go(document.documentElement.scrollHeight); });
+  function update() {
+    var y = window.scrollY, max = document.documentElement.scrollHeight - window.innerHeight;
+    up.classList.toggle('is-hidden', y < 300);
+    down.classList.toggle('is-hidden', max < 200 || y > max - 300);
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
 })();

@@ -1,4 +1,4 @@
-<%- include('../partials/head') %>
+<%- include('../partials/head', { flush: true }) %>
 <%
   const applyUrl = person ? '/my/new' : '/signin?next=/my/new';
   const campusStatus = { design: 'In design', renovation: 'Under renovation', open: 'Open', planned: 'Planned' };
@@ -6,50 +6,123 @@
   const pillarName = { make: 'Make', grow: 'Grow', create: 'Create', scalegate: 'ScaleGate' };
 %>
 <section class="hero">
-  <div class="wrap">
-    <p class="eyebrow" style="color:#c8a14a">ScaleGate Africa · Lagos · The Hague</p>
-    <h1>Make. Grow. <em>Create.</em></h1>
-    <p>Africa's real problems and Africa's real culture, built into businesses the world will buy. VentureOS is the way into ScaleGate: one application for ScaleGate's programmes in Africa and Europe, the VentureOS Center residency in Lagos, and investment — with a route to grow in Europe through ScaleGate's team in the Netherlands.</p>
-    <p style="margin-top:24px"><a class="btn gold" href="<%= applyUrl %>">Apply</a> &nbsp; <a class="btn ghost" href="#scalegate">ScaleGate programmes</a> &nbsp; <a class="btn ghost" href="#events">Presentations and meetups</a></p>
+  <div class="vos-scene vos-grain" data-scene>
+    <div class="vos-scene__stage">
+      <div class="vos-layer vos-woven" style="left:-60px;top:30px;width:520px;height:340px;--z:-180;--rot:-6;--d:2;--dx:10;--dy:-8"></div>
+      <div class="vos-layer vos-woven" style="right:-80px;bottom:-40px;width:620px;height:320px;--z:-140;--rot:4;--d:5;--dx:-8;--dy:-12"></div>
+      <div class="vos-layer" style="right:calc(50% - 420px);top:70px;width:150px;height:150px;border-radius:var(--radius-pill);background:var(--brass);--z:-90;--d:1;--dx:-6;--dy:10"></div>
+      <div class="vos-layer" style="right:calc(50% - 390px);top:150px;--z:110;--d:4;--dy:-16;--dr:-1"><div data-emblem='{"size":150,"night":true,"drawn":false,"light":true,"breathing":true}'></div></div>
+      <div class="vos-layer" style="right:calc(50% - 560px);top:118px;--z:150;--d:6;--dx:-10"><span class="vos-tag vos-tag--brass"><span class="vos-tag__k">route</span><span class="vos-tag__v">lagos → the_hague</span></span></div>
+      <div class="vos-layer" style="right:calc(50% - 520px);top:390px;--z:130;--d:2;--dy:-12"><span class="vos-tag"><span class="vos-tag__k">pillar</span><span class="vos-tag__v">make · grow · create</span></span></div>
+      <div class="vos-layer" style="left:calc(50% - 40px);top:36px;--z:90;--d:7;--dy:-8"><span class="vos-tag"><span class="vos-tag__k">answer_by</span><span class="vos-tag__v">10 working days</span></span></div>
+      <div class="vos-layer" style="left:calc(50% + 10px);bottom:70px;--z:120;--d:3;--dy:-10"><span class="vos-tag"><span class="vos-tag__k">fee</span><span class="vos-tag__v">0 — always</span></span></div>
+      <% const nextE = events[0]; if (nextE) { const lg = new Date(new Date(nextE.starts_at).getTime() + 3600e3); %>
+      <a class="vos-layer vos-card is-floating" href="/events/<%= nextE.id %>" style="right:calc(50% - 540px);bottom:60px;width:260px;padding:16px 18px;color:var(--ink);text-decoration:none;--z:170;--rot:3;--d:4;--dy:-14">
+        <div style="display:flex;gap:14px;align-items:center">
+          <div style="text-align:center;min-width:48px"><div class="vos-display" style="font-size:42px;line-height:1"><%= String(lg.getUTCDate()).padStart(2, '0') %></div><div class="vos-eyebrow" style="font-size:10px;margin:0"><%= lg.toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' }) %></div></div>
+          <div><span class="vos-badge is-scalegate" style="font-size:11px"><%= E.KINDS[nextE.kind] %></span><div style="font:650 14px/19px var(--font-sans);margin-top:6px"><%= nextE.title %></div></div>
+        </div>
+      </a>
+      <% } %>
+      <div class="vos-layer keep vos-torn vos-sheet vos-grain is-floating sheet" style="left:max(24px, calc(50% - 556px));top:96px;width:560px;--z:40;--rot:-1.5;--d:3;--dy:-8">
+        <p class="vos-eyebrow" style="margin:0 0 12px"><a href="<%= config.scalegate.africa.url %>" target="_blank" rel="noopener" style="color:inherit">ScaleGate Africa</a> · Lagos · <a href="<%= config.scalegate.europe.url %>" target="_blank" rel="noopener" style="color:inherit">The Hague</a></p>
+        <h1>The way into <em>ScaleGate</em></h1>
+        <p class="sub">Africa's real problems and Africa's real culture, built into businesses the world will buy. One application for ScaleGate's programmes in Africa and Europe, the VentureOS Center residency, and investment.</p>
+        <div class="acts">
+          <a class="vos-btn vos-btn--brass" href="<%= applyUrl %>">Apply <span class="vos-btn__arrow">→</span></a>
+          <a class="vos-btn vos-btn--ghost" href="#scalegate">See the programmes</a>
+        </div>
+        <p class="free">Applying is free · a written answer within 10 working days</p>
+      </div>
+    </div>
   </div>
 </section>
+<div class="ticker-band" aria-hidden="true">
+  <div class="vos-ticker"><div class="vos-ticker__track">
+    <% for (const p of SG) { %><span><%= p.label %></span><% } %>
+    <% for (const e of events.slice(0, 3)) { %><span><%= e.title %> · <%= new Date(new Date(e.starts_at).getTime() + 3600e3).toLocaleString('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' }) %></span><% } %>
+    <% for (const c of cohorts) { %><span><%= c.name %> · <%= cohortStatus[c.status] %></span><% } %>
+    <span>Make. Grow. Create.</span>
+  </div></div>
+</div>
 
 <section class="section" id="scalegate">
   <div class="wrap">
-    <p class="eyebrow">From Africa into Europe, and from Europe into Africa</p>
-    <h2 style="margin-top:0">ScaleGate programmes — apply through VentureOS</h2>
-    <p class="lead">ScaleGate backs companies moving from Africa into Europe and from Europe into Africa, with an operating team in the Netherlands and its African hub in Lagos. VentureOS is how you apply: choose where you are today, and we will meet you at that stage.</p>
-    <% for (const group of [['Founders', 'Build and scale'], ['Europe', 'Build in Europe'], ['Impact', 'Impact initiatives'], ['Africa', 'Into Africa']]) { const list = SG.filter((p) => p.group === group[0]); %>
-      <h3><%= group[1] %></h3>
-      <div class="grid <%= list.length > 2 ? 'g3' : list.length === 2 ? 'g2' : '' %>">
-        <% for (const p of list) { %>
-          <div class="card interest">
-            <span class="badge scalegate"><%= p.short %></span>
-            <h3><%= p.label %></h3>
-            <p class="muted small"><%= p.body %></p>
-            <a class="btn small" href="<%= person ? '/my/new?kind=programme&programme=' + p.value : '/signin?next=' + encodeURIComponent('/my/new?kind=programme&programme=' + p.value) %>">Apply through VentureOS</a>
+    <p class="eyebrow vos-reveal">From Africa into Europe, and from Europe into Africa</p>
+    <h2 class="vos-reveal">ScaleGate programmes — <em>apply through VentureOS</em></h2>
+    <p class="lead vos-reveal">ScaleGate backs companies moving from Africa into Europe and from Europe into Africa, with an operating team in the Netherlands and its African hub in Lagos. Choose where you are today, and we will meet you at that stage.</p>
+    <% let tint = 0;
+       const card = (p) => { tint = tint % 4 + 1; return p; };
+       const groups = [['Founders', 'Build and scale'], ['Europe', 'Build in Europe'], ['Africa', 'Into Africa'], ['Impact', 'Impact initiatives']].map(([k, label]) => ({ label, list: SG.filter((p) => p.group === k) })).filter((g) => g.list.length);
+       const rows = []; let pair = [];
+       for (const g of groups) { if (g.list.length === 1) { pair.push(g); if (pair.length === 2) { rows.push(pair); pair = []; } } else rows.push([g]); }
+       if (pair.length) rows.push(pair); %>
+    <% for (const row of rows) { %>
+      <div class="<%= row.length > 1 ? 'grid g2' : '' %>">
+      <% for (const g of row) { %>
+        <div class="prog-group">
+          <h3><%= g.label %></h3>
+          <div class="grid <%= row.length > 1 ? '' : g.list.length > 2 ? 'g3' : 'g2' %>">
+            <% for (const p of g.list) { card(p); %>
+              <a class="prog vos-reveal" href="<%= person ? '/my/new?kind=programme&programme=' + p.value : '/signin?next=' + encodeURIComponent('/my/new?kind=programme&programme=' + p.value) %>">
+                <div class="arch t<%= tint %>"><span class="door"></span></div>
+                <div class="body">
+                  <div><span class="badge scalegate"><%= p.short %></span></div>
+                  <h4><%= p.label %></h4>
+                  <p><%= p.body %></p>
+                  <span class="go">Apply through VentureOS <span class="arr">→</span></span>
+                </div>
+              </a>
+            <% } %>
           </div>
-        <% } %>
+        </div>
+      <% } %>
       </div>
     <% } %>
-    <div class="grid g2" style="margin-top:18px">
-      <div class="card"><h3 style="margin-top:0">How a ScaleGate engagement works</h3>
-        <ol class="small" style="margin:0;padding-left:18px"><li><b>Apply</b> through VentureOS: where the company is today and what needs to change.</li><li><b>Review:</b> stage, need and fit — with a written answer within ten working days.</li><li><b>Scope:</b> if there is a fit, we agree the pathway, priorities, working model, outcomes and commercial terms in writing.</li><li><b>Begin:</b> ScaleGate assembles the team, in Africa and in Europe, and starts the agreed work.</li></ol></div>
-      <div class="card"><h3 style="margin-top:0">Funding or partnering a programme?</h3>
-        <p class="small muted">Foundations, institutions, companies and donors design founder programmes, challenges, market access programmes and venture studios with ScaleGate — and sponsor young founders through Venture Philanthropy.</p>
-        <a class="btn small ghost" href="/partner">Partner with us</a></div>
+    <div class="flow">
+      <div class="vos-reveal"><b>Apply</b><p>Through VentureOS: where the company is today and what needs to change.</p></div>
+      <div class="vos-reveal"><b>Review</b><p>Stage, need and fit — with a written answer within ten working days.</p></div>
+      <div class="vos-reveal"><b>Scope</b><p>If there is a fit, we agree pathway, priorities, outcomes and terms in writing.</p></div>
+      <div class="vos-reveal"><b>Begin</b><p>ScaleGate assembles the team, in Africa and in Europe, and starts the agreed work.</p></div>
     </div>
-    <p class="small muted" style="margin-top:12px">Applying does not create a service agreement or guarantee acceptance; work starts only once scope and terms are agreed in writing. ScaleGate is not a visa or immigration agency, and does not guarantee positive RVO advice or an IND residence permit. VentureOS is operated by ScaleGate Africa, part of ScaleGate.</p>
+    <div class="card row between vos-reveal" style="margin-top:34px">
+      <div style="max-width:720px"><h3 style="margin:0 0 4px">Funding or partnering a programme?</h3>
+        <p class="small muted" style="margin:0">Foundations, institutions, companies and donors design founder programmes, challenges, market access programmes and venture studios with ScaleGate — and sponsor young founders through Venture Philanthropy.</p></div>
+      <a class="btn ghost" href="/partner">Partner with us <span class="arr">→</span></a>
+    </div>
+    <p class="small muted" style="margin-top:14px">Applying does not create a service agreement or guarantee acceptance; work starts only once scope and terms are agreed in writing. ScaleGate is not a visa or immigration agency, and does not guarantee positive RVO advice or an IND residence permit. VentureOS is operated by ScaleGate Africa, part of ScaleGate.</p>
   </div>
 </section>
 
-<section class="section" id="events" style="padding-top:10px">
+<section class="section night" id="meet-scalegate">
+  <div class="wrap">
+    <p class="eyebrow vos-reveal" style="color:#d6ad55">Who is behind VentureOS</p>
+    <h2 class="vos-reveal" style="color:var(--on-night)">Meet <em style="color:#d6ad55">ScaleGate</em></h2>
+    <p class="lead vos-reveal" style="color:#d6cbbb">ScaleGate helps companies grow across borders — from Africa into Europe, and from Europe into Africa. VentureOS is how founders apply; ScaleGate's own sites tell you everything else about the team, the programmes and the work.</p>
+    <div class="sgcards">
+      <a class="sgcard vos-reveal" href="<%= config.scalegate.africa.url %>" target="_blank" rel="noopener">
+        <span class="k">In Africa · Lagos hub</span>
+        <h3>ScaleGate Africa</h3>
+        <p>For founders, companies and partners in Africa — and for European companies entering African markets.</p>
+        <span class="go"><%= config.scalegate.africa.host %> <span class="arr">↗</span></span>
+      </a>
+      <a class="sgcard is-eu vos-reveal" href="<%= config.scalegate.europe.url %>" target="_blank" rel="noopener">
+        <span class="k">In Europe · The Hague</span>
+        <h3>ScaleGate</h3>
+        <p>For European visitors, investors and partners — and for African companies building in the Netherlands and across Europe.</p>
+        <span class="go"><%= config.scalegate.europe.host %> <span class="arr">↗</span></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="events">
   <div class="wrap">
     <p class="eyebrow">Every month</p>
-    <div class="row between"><h2 style="margin:0">Investment presentations and meetups</h2><a class="small" href="/events">All dates →</a></div>
-    <p class="lead">Each month selected founders present to investors, and the VentureOS community — founders, investors, industry and government — meets in Lagos. Register to attend, or submit your venture to present.</p>
+    <div class="row between" style="align-items:flex-end"><h2 class="vos-reveal" style="margin:0">Investment presentations <em>and meetups</em></h2><a class="btn ghost small" href="/events">All dates <span class="arr">→</span></a></div>
+    <p class="lead vos-reveal" style="margin-top:14px">Each month selected founders present to investors, and the VentureOS community — founders, investors, industry and government — meets in Lagos. Register to attend, or submit your venture to present.</p>
     <% if (!events.length) { %><div class="card muted">The next dates will be announced here soon.</div><% } else { %>
-      <div class="grid <%= events.length > 1 ? 'g2' : '' %>" style="margin-top:16px"><% for (const e of events.slice(0, 4)) { %><%- include('../events/_card', { e, E, P }) %><% } %></div>
+      <div class="grid <%= events.length > 1 ? 'g2' : '' %>" style="margin-top:24px"><% for (const e of events.slice(0, 4)) { %><%- include('../events/_card', { e, E, P }) %><% } %></div>
     <% } %>
   </div>
 </section>
@@ -58,10 +131,10 @@
 <section class="section" id="cohorts">
   <div class="wrap">
     <p class="eyebrow">Announcements</p>
-    <h2 style="margin-top:0">Cohorts</h2>
+    <h2 class="vos-reveal">Cohorts at the <em>VentureOS Center</em></h2>
     <div class="grid <%= cohorts.length > 1 ? 'g2' : '' %>">
       <% for (const c of cohorts) { %>
-        <div class="card announce">
+        <div class="card announce vos-reveal">
           <div class="row between"><h3 style="margin:0"><%= c.name %></h3><span class="badge <%= c.status === 'open' ? 'green' : c.status === 'running' ? 'blue' : 'amber' %>"><%= cohortStatus[c.status] %></span></div>
           <p class="when" style="margin:10px 0 4px"><%= c.starts_on ? 'Starts ' + date(c.starts_on) : (c.timing || 'Dates to be announced') %></p>
           <p class="small muted" style="margin:0 0 10px">
@@ -80,12 +153,12 @@
 <section class="section" id="about">
   <div class="wrap">
     <p class="eyebrow">The programme</p>
-    <h2 style="margin-top:0">About VentureOS</h2>
+    <h2 class="vos-reveal">About <em>VentureOS</em></h2>
     <p class="lead">VentureOS began as a gathering of tech minds in Lagos. It is now ScaleGate Africa's front door — where founders apply to ScaleGate's programmes — and the name of the campus where its cohorts live and build. It brings founders, investors, industry and government together around ventures that solve real problems and can sell beyond Africa.</p>
-    <div class="grid g3" style="margin-top:20px">
-      <div class="card"><h3>The VentureOS Center</h3><p class="muted" style="margin:0">A 6–12 month residency in Lagos for 12–20 innovators per cohort: housing, labs, studios and mentors, moving from problem immersion to prototype, pilot and a company.</p></div>
-      <div class="card"><h3>VentureOS meetings</h3><p class="muted" style="margin:0">Regular gatherings in Lagos where founders meet ScaleGate, investors and partners — the front door to everything else in the programme.</p></div>
-      <div class="card"><h3>ScaleGate, investment and Europe</h3><p class="muted" style="margin:0">Applications to ScaleGate's programmes, equity, debt and grant funding arranged through ScaleGate's network, and a route to grow in Europe through ScaleGate's team in the Netherlands for ventures proven in Lagos.</p></div>
+    <div class="grid g3" style="margin-top:28px">
+      <div class="card vos-reveal"><h3>The VentureOS Center</h3><p class="muted" style="margin:0">A 6–12 month residency in Lagos for 12–20 innovators per cohort: housing, labs, studios and mentors, moving from problem immersion to prototype, pilot and a company.</p></div>
+      <div class="card vos-reveal"><h3>VentureOS meetings</h3><p class="muted" style="margin:0">Regular gatherings in Lagos where founders meet ScaleGate, investors and partners — the front door to everything else in the programme.</p></div>
+      <div class="card vos-reveal"><h3>ScaleGate, investment and Europe</h3><p class="muted" style="margin:0">Applications to ScaleGate's programmes, equity, debt and grant funding arranged through ScaleGate's network, and a route to grow in Europe through ScaleGate's team in the Netherlands for ventures proven in Lagos.</p></div>
     </div>
   </div>
 </section>
@@ -93,14 +166,14 @@
 <section class="section" id="what">
   <div class="wrap">
     <p class="eyebrow">What we are about</p>
-    <h2 style="margin-top:0">Physical and cultural frontiers, not only apps</h2>
+    <h2 class="vos-reveal">Physical and cultural frontiers, <em>not only apps</em></h2>
     <p class="lead">Most young African entrepreneurs equate innovation with software. We point founders at the physical and cultural frontiers where Africa has the biggest gaps and the strongest global pull — and every cohort mixes all three pillars.</p>
-    <div class="grid g3" style="margin-top:20px">
-      <div class="card pillar make"><h3>Make</h3><p class="muted" style="margin:0">Water, energy, petroleum and petrochemicals, waste-to-value, cooling and the built environment, health diagnostics.</p></div>
-      <div class="card pillar grow"><h3>Grow</h3><p class="muted" style="margin:0">Production, processing and storage, natural and organic farming, packaged Nigerian food and packaging for export.</p></div>
-      <div class="card pillar create"><h3>Create</h3><p class="muted" style="margin:0">Fashion, music, art, authorship and publishing, theatre, stage and screen production, media, design and tourism.</p></div>
+    <div class="pillars">
+      <div class="pillar make vos-reveal"><h3>Make</h3><p class="muted" style="margin:0">Water, energy, petroleum and petrochemicals, waste-to-value, cooling and the built environment, health diagnostics.</p></div>
+      <div class="pillar grow vos-reveal"><h3>Grow</h3><p class="muted" style="margin:0">Production, processing and storage, natural and organic farming, packaged Nigerian food and packaging for export.</p></div>
+      <div class="pillar create vos-reveal"><h3>Create</h3><p class="muted" style="margin:0">Fashion, music, art, authorship and publishing, theatre, stage and screen production, media, design and tourism.</p></div>
     </div>
-    <ul class="principles" style="margin-top:22px">
+    <ul class="principles" style="margin-top:34px">
       <li><b>Founders own their IP.</b> The center helps register patents, designs and copyright.</li>
       <li><b>No upfront fees for residents.</b> Carrying costs run on an innovator tab owed by the venture, repaid from revenue — and forgiven if there is none within three years.</li>
       <li><b>Prove it in Lagos.</b> Solutions are tested in the hardest operating conditions, with real users and partners in the field.</li>
@@ -113,9 +186,9 @@
 <section class="section" id="campuses">
   <div class="wrap">
     <p class="eyebrow">Campuses</p>
-    <h2 style="margin-top:0"><%= campuses.length > 1 ? 'Our campuses' : 'The campus' %></h2>
+    <h2 class="vos-reveal"><%= campuses.length > 1 ? 'Our campuses' : 'The campus' %></h2>
     <% for (const k of campuses) { %>
-      <div class="card campus">
+      <div class="card campus vos-reveal">
         <div>
           <div class="row"><h3 style="margin:0"><%= k.name %><%= k.city ? ', ' + k.city : '' %></h3><span class="badge amber"><%= campusStatus[k.status] || k.status %></span></div>
           <p style="margin:12px 0"><%= k.summary %></p>
@@ -135,11 +208,11 @@
 <section class="section" id="projects">
   <div class="wrap">
     <p class="eyebrow">ScaleGate Africa</p>
-    <h2 style="margin-top:0">Projects that interest us</h2>
+    <h2 class="vos-reveal">Projects that <em>interest us</em></h2>
     <p class="lead">If you are working on one of these, we want to hear from you — whether you are an innovator looking for a residency or an established business looking for investment.</p>
     <div class="grid g3" style="margin-top:20px">
       <% for (const i of interests) { %>
-        <div class="card interest">
+        <div class="card interest vos-reveal">
           <% if (i.pillar) { %><span class="badge <%= i.pillar %>"><%= pillarName[i.pillar] %></span><% } %>
           <h3><%= i.title %></h3>
           <p class="muted small" style="margin:0"><%= i.body %></p>
@@ -151,14 +224,39 @@
 </section>
 <% } %>
 
+<section class="section night" id="how-we-work">
+  <div class="wrap">
+    <p class="eyebrow vos-reveal" style="color:#d6ad55">How we work</p>
+    <h2 class="vos-reveal" style="color:var(--on-night)">Faster answers, <em style="color:#d6ad55">people decide</em></h2>
+    <p class="lead vos-reveal" style="color:#d6cbbb">VentureOS works with two partners. OxiAi's agents take the paperwork off our team so every founder gets a quicker, better-prepared answer; OxiAcademy keeps founders learning, whatever the outcome of an application.</p>
+    <div class="eco">
+      <div class="vos-card vos-reveal">
+        <span class="k">Assisted by</span>
+        <h3>OxiAi</h3>
+        <p>AI agents that help us process applications and programmes.</p>
+        <ul><li>Check that submissions and documents are complete</li><li>Prepare the first read of the figures for reviewers</li><li>Draft follow-ups, meeting notes and reminders</li><li>Run the paperwork of programmes we deliver with partners</li></ul>
+        <% if (config.ecosystem.oxiai.url) { %><a href="<%= config.ecosystem.oxiai.url %>" target="_blank" rel="noopener">Visit OxiAi →</a><% } %>
+      </div>
+      <div class="vos-card vos-reveal">
+        <span class="k">Learn with</span>
+        <h3>OxiAcademy</h3>
+        <p>Learning for founders and for the programmes they join.</p>
+        <ul><li>Courses and clinics for founders at every stage</li><li>Support for entrepreneurship programmes such as iDICE</li><li>A path to keep building for every applicant — including those we cannot take this time</li></ul>
+        <% if (config.ecosystem.oxiacademy.url) { %><a href="<%= config.ecosystem.oxiacademy.url %>" target="_blank" rel="noopener">Visit OxiAcademy →</a><% } %>
+      </div>
+    </div>
+    <div class="peoplefirst vos-reveal"><div data-emblem='{"size":34,"night":true,"drawn":true}'></div><div><b>Agents assist; people decide.</b> Two independent ScaleGate partners review every application, and the committee makes every decision. No agent accepts or declines anyone.</div></div>
+  </div>
+</section>
+
 <section class="section" id="apply">
   <div class="wrap">
     <p class="eyebrow">Applications</p>
-    <h2 style="margin-top:0">Apply</h2>
+    <h2 class="vos-reveal">Apply — <em>it is free</em></h2>
     <p class="lead">One application can ask for more than one of these — for example a residency and equity together. Save as you go; nothing is sent until you press Send.</p>
     <div class="grid g2" style="margin-top:16px">
       <% for (const [k, v] of Object.entries(kinds)) { %>
-        <a class="card kindcard" href="<%= person ? '/my/new?kind=' + k : '/signin?next=' + encodeURIComponent('/my/new?kind=' + k) %>">
+        <a class="card kindcard vos-reveal" href="<%= person ? '/my/new?kind=' + k : '/signin?next=' + encodeURIComponent('/my/new?kind=' + k) %>">
           <h3><%= v.label %></h3><p class="muted" style="margin:0"><%= v.blurb %></p>
         </a>
       <% } %>
@@ -169,23 +267,23 @@
     </div>
     <h3>How we select</h3>
     <p class="muted small" style="margin-top:-4px">Two partners score every initial submission independently, after declaring any conflict of interest.</p>
-    <div class="grid g3">
-      <div class="card small"><b>Founder — 30%</b><div class="muted">Commitment, ability, and evidence of what you have built before.</div></div>
-      <div class="card small"><b>Problem fit — 20%</b><div class="muted">A real problem, especially in food, water, energy and health.</div></div>
-      <div class="card small"><b>Traction — 20%</b><div class="muted">What exists today, and who uses it or pays for it.</div></div>
-      <div class="card small"><b>European leverage — 15%</b><div class="muted">Why Europe, specifically, could matter to the venture.</div></div>
-      <div class="card small"><b>Scalability — 10%</b><div class="muted">Room to grow well beyond where you are now.</div></div>
-      <div class="card small"><b>Integrity</b><div class="muted">Honesty and clean legal standing are a condition, not a score.</div></div>
+    <div class="crit">
+      <div><b>30</b><span>Founder</span><p>Commitment, ability, and evidence of what you have built before.</p></div>
+      <div><b>20</b><span>Problem fit</span><p>A real problem, especially in food, water, energy and health.</p></div>
+      <div><b>20</b><span>Traction</span><p>What exists today, and who uses it or pays for it.</p></div>
+      <div><b>15</b><span>European leverage</span><p>Why Europe, specifically, could matter to the venture.</p></div>
+      <div><b>10</b><span>Scalability</span><p>Room to grow well beyond where you are now.</p></div>
+      <div><b>✓</b><span>Integrity</span><p>Honesty and clean legal standing are a condition, not a score.</p></div>
     </div>
     <p class="muted small">VentureOS Center residencies are also assessed on problem, ability, commitment, solution potential, collaboration and pan-African reach.</p>
-    <h3>How it works</h3>
+    <h3 style="margin-top:34px">How it works</h3>
     <ol class="steps">
       <li><span class="n">1</span><div><b>Initial submission</b><div class="muted small">Tell us about the venture and what you are asking for, with your pitch deck and business plan. For equity, show how you arrived at your valuation.</div></div></li>
       <li><span class="n">2</span><div><b>Screening and a first meeting</b><div class="muted small">If we would like to proceed, we invite you to meet us — in person at our Victoria Island office or by video — through your VentureOS portal.</div></div></li>
       <li><span class="n">3</span><div><b>Full documentation</b><div class="muted small">Financial statements, tax returns, the business background questionnaire and the rest, plus any follow-up documents agreed at our meetings.</div></div></li>
       <li><span class="n">4</span><div><b>Review, challenge or due diligence, committee</b><div class="muted small">Two independent reviewers who declare any conflict of interest; a practical challenge for residencies or due diligence for funding; then the committee decides.</div></div></li>
     </ol>
-    <p style="margin-top:20px"><a class="btn gold" href="<%= applyUrl %>">Start an application</a> <% if (!person) { %>&nbsp; <a href="/signin">Already applied? Sign in to your portal</a><% } %></p>
+    <p style="margin-top:20px"><a class="btn gold" href="<%= applyUrl %>">Start an application <span class="arr">→</span></a> <% if (!person) { %>&nbsp; <a href="/signin">Already applied? Sign in to your portal</a><% } %></p>
   </div>
 </section>
 <%- include('../partials/foot') %>

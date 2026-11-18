@@ -1,10 +1,35 @@
 </main>
-<footer>
-  <div class="wrap row between">
-    <span>VentureOS · <%= config.org.name %> · <%= config.org.address %></span>
-    <span>Make. Grow. Create.</span>
+<% const eco = config.ecosystem; %>
+<footer class="foot">
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <img src="/static/img/ventureos-lockup-paper.svg" alt="VentureOS" style="height:46px;width:auto">
+        <p class="tag">Make. Grow. <i>Create.</i></p>
+        <p class="small" style="color:#a69b8d;margin:0;max-width:300px">The way into ScaleGate — ScaleGate Africa's front door in Lagos. Applying is free, always.</p>
+      </div>
+      <div><h4>VentureOS</h4><ul>
+        <li><a href="/#scalegate">ScaleGate programmes</a></li><li><a href="/events">Presentations and meetups</a></li>
+        <li><a href="/#cohorts">The VentureOS Center</a></li><li><a href="/#apply">Apply</a></li><li><a href="/signin">Your portal</a></li></ul></div>
+      <div><h4>Work with us</h4><ul>
+        <li><a href="/partner">Partner with us</a></li><li><a href="/#projects">Projects that interest us</a></li>
+        <li><a href="mailto:<%= config.org.email %>"><%= config.org.email %></a></li></ul></div>
+      <div><h4>ScaleGate</h4><ul>
+        <li><a href="<%= config.scalegate.africa.url %>" target="_blank" rel="noopener">ScaleGate Africa</a> <span style="color:#a69b8d">— <%= config.scalegate.africa.host %>, Lagos</span></li>
+        <li><a href="<%= config.scalegate.europe.url %>" target="_blank" rel="noopener">ScaleGate</a> <span style="color:#a69b8d">— <%= config.scalegate.europe.host %>, The Hague</span></li></ul></div>
+      <div><h4>With our partners</h4><ul>
+        <li><% if (eco.oxiai.url) { %><a href="<%= eco.oxiai.url %>" rel="noopener" target="_blank">OxiAi</a><% } else { %>OxiAi<% } %> <span style="color:#a69b8d">— agents that assist our team</span></li>
+        <li><% if (eco.oxiacademy.url) { %><a href="<%= eco.oxiacademy.url %>" rel="noopener" target="_blank">OxiAcademy</a><% } else { %>OxiAcademy<% } %> <span style="color:#a69b8d">— learning for founders</span></li></ul></div>
+    </div>
+    <div class="threads" data-threads="44" aria-hidden="true"></div>
+    <div class="fine"><span>VentureOS by <a href="<%= config.scalegate.africa.url %>" target="_blank" rel="noopener">ScaleGate Africa</a>, part of <a href="<%= config.scalegate.europe.url %>" target="_blank" rel="noopener">ScaleGate</a> · <%= config.org.address %></span><span>Lagos · The Hague</span></div>
   </div>
 </footer>
-<script src="/static/js/app.js" defer></script>
+<nav class="scrollnav" aria-label="Page scrolling">
+  <a href="#top" class="scrollnav__btn" data-scroll="top" aria-label="Back to the top" title="Back to the top"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  <a href="#bottom" class="scrollnav__btn" data-scroll="bottom" aria-label="Go to the bottom" title="Go to the bottom"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+</nav>
+<span id="bottom"></span>
+<script src="/static/js/app.js?v=<%= v %>" defer></script>
 </body>
 </html>
