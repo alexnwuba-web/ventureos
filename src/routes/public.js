@@ -1,6 +1,7 @@
 'use strict';
 const express = require('express');
 const auth = require('../auth');
+const config = require('../config');
 const Q = require('../domain/questions');
 const { db } = require('../db');
 
@@ -49,6 +50,37 @@ r.post('/signin/code', async (req, res) => {
   }
 });
 
+// ── Sign in with Google ──
+// A short-lived signed cookie carries a random state (against forged sign-ins) and where to go afterwards.
+const GSTATE = 'vos_gstate';
+r.get('/signin/google', (req, res) => {
+  if (!auth.google.enabled()) return res.redirect('/signin');
+  const state = require('crypto').randomBytes(16).toString('hex');
+  res.cookie(GSTATE, require('jsonwebtoken').sign({ state, next: safeNext(req.query.next) || '' }, config.sessionSecret, { expiresIn: '10m' }),
+    { httpOnly: true, sameSite: 'lax', secure: config.prod, path: '/signin/google', maxAge: 10 * 60e3 });
+  res.redirect(auth.google.url(state));
+});
+
+r.get('/signin/google/callback', async (req, res) => {
+  let saved = null;
+  try { saved = require('jsonwebtoken').verify(req.cookies && req.cookies[GSTATE], config.sessionSecret); } catch { saved = null; }
+  res.clearCookie(GSTATE, { path: '/signin/google' });
+  const fail = (msg) => res.status(400).render('public/signin', { title: 'Sign in', next: saved ? saved.next : '', error: msg, email: '' });
+  if (req.query.error) return fail('Google sign-in was cancelled. You can try again, or use an email code.');
+  if (!saved || !req.query.state || saved.state !== String(req.query.state) || !req.query.code) return fail('That Google sign-in link has expired. Please try again.');
+  try {
+    const g = await auth.google.profile(String(req.query.code));
+    const person = await auth.personFor(g.email, g.name);
+    await auth.startSession(res, person.id);
+    const next = safeNext(saved.next);
+    if (!person.name) return res.redirect('/my/profile?next=' + encodeURIComponent(next || ''));
+    res.redirect(next || (person.staff_role ? '/staff' : '/my'));
+  } catch (e) {
+    if (!e.status || e.status >= 500) throw e;
+    fail(e.message);
+  }
+});
+
 // ── Organisations that want to fund or co-design programmes (ScaleGate's impact initiatives) ──
 const PARTNER_INTERESTS = {
   venture_philanthropy: 'Sponsor young founders (Venture Philanthropy)',
@@ -75,7 +107,7 @@ r.post('/partner', async (req, res) => {
     [t(b.name, 120), t(b.organisation, 160), t(b.role, 120) || null, email, t(b.phone, 40) || null, t(b.country, 80) || null, ORG_TYPES.includes(b.org_type) ? b.org_type : null,
       interests, t(b.message, 4000) || null, t(b.budget, 120) || null]);
   const mail = require('../lib/mail');
-  const config = require('../config');
+
   await mail.send({ to: email, subject: 'Thank you — ScaleGate Africa', lines: [`Dear ${e.name},`, 'Thank you for your interest in working with ScaleGate Africa and VentureOS. A partner will be in touch within ten working days to arrange a call.'] });
   for (const a of await db.many(`SELECT email FROM people WHERE staff_role = 'admin'`)) {
     await mail.send({ to: a.email, subject: `Partner enquiry: ${e.organisation}`, lines: [`${e.name} (${e.role || '—'}), ${e.organisation} — ${e.org_type || ''}`, `Interested in: ${interests.map((x) => PARTNER_INTERESTS[x]).join('; ')}`, e.message || ''],

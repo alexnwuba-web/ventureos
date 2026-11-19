@@ -32,8 +32,20 @@
   <% if (notice === 'review-sent') { %><div class="notice ok" style="margin-top:14px">Your review has been sent.</div><% } %>
   <% if (notice === 'review-saved') { %><div class="notice ok" style="margin-top:14px">Review saved. Send it when every criterion is scored.</div><% } %>
 
-  <nav class="tabs noprint" style="margin-top:18px">
-    <a href="#summary">Summary</a><a href="#answers">Answers</a><a href="#documents">Documents</a><a href="#meetings">Meetings</a><a href="#followups">Follow-ups</a><a href="#reviews">Reviews</a><% if (canDiscuss) { const nNew = discussion.filter((d) => d.isNew).length; %><a href="#discussion">Partner discussion<% if (nNew) { %> <span class="count"><%= nNew %></span><% } %></a><% } %><% if (staff !== 'reviewer') { %><a href="#messages">Founder messages</a><% } %><% if (history.length) { %><a href="#history">History</a><% } %>
+  <%
+    const nNew = canDiscuss ? discussion.filter((d) => d.isNew).length : 0;
+    const openActions = canSeeAnswers ? followups.actions.filter((x) => !x.done_at).length + followups.requests.filter((x) => x.status === 'open').length : 0;
+    const reviewsSent = reviews.filter((rv) => rv.submitted_at).length;
+  %>
+  <nav class="tabs noprint" data-tabs="main" style="margin-top:18px">
+    <% if (canSeeAnswers) { %>
+      <a href="#summary">Summary</a>
+      <a href="#application">Application <span class="tabn"><%= docs.length %> doc<%= docs.length === 1 ? '' : 's' %></span></a>
+      <a href="#meet">Meetings &amp; follow-ups<% if (meetings.length || openActions) { %> <span class="tabn"><%= meetings.length %><%= openActions ? ' · ' + openActions + ' open' : '' %></span><% } %></a>
+    <% } %>
+    <a href="#reviews">Reviews <span class="tabn"><%= reviewsSent %> sent</span></a>
+    <% if (canDiscuss || staff !== 'reviewer') { %><a href="#talk">Conversations<% if (nNew) { %> <span class="count"><%= nNew %></span><% } %></a><% } %>
+    <% if (history.length) { %><a href="#history">History</a><% } %>
   </nav>
 
   <div class="split">
@@ -41,7 +53,7 @@
       <% if (!canSeeAnswers) { %>
         <div class="notice warn">Declare any conflict of interest (on the right) before you can read this application.</div>
       <% } else { %>
-      <section id="summary">
+      <section id="summary" data-panel="main">
         <div class="card">
           <h2 style="margin-top:0">First read</h2>
           <p class="small muted" style="margin-top:-4px">Worked out from the founder's answers. Flags tell you where to ask questions; they are not a decision.<% if (app.stage === 1) { %> This is the initial submission: figures that come with the full documentation (financial statements, cap table, loans, security) are not in yet.<% } %></p>
@@ -105,14 +117,19 @@
         </div>
       </section>
 
+      <div id="application" data-panel="main">
+      <nav class="subtabs noprint" data-tabs="app">
+        <% for (const s of sections) { %><a href="#ans-<%= s.key %>"><%= s.title %></a><% } %>
+        <a href="#documents">Documents <span class="tabn"><%= docs.length %></span></a>
+      </nav>
       <section id="answers">
-        <h2>Answers</h2>
-        <% for (const s of sections) { %>
-          <div class="card"><h3 style="margin:0"><%= s.title %></h3><%- include('../partials/answers', { s, answers, Q }) %></div>
-        <% } %>
+        <% sections.forEach((s, i) => { const nx = sections[i + 1]; %>
+          <div class="card" id="ans-<%= s.key %>" data-panel="app"><h3 style="margin:0"><%= s.title %></h3><%- include('../partials/answers', { s, answers, Q }) %>
+            <p class="right small noprint" style="margin:14px 0 0"><a href="#<%= nx ? 'ans-' + nx.key : 'documents' %>">Next: <%= nx ? nx.title : 'Documents' %> →</a></p></div>
+        <% }) %>
       </section>
 
-      <section id="documents">
+      <section id="documents" data-panel="app">
         <h2>Documents</h2>
         <div class="card" style="padding:0">
           <table class="list">
@@ -140,11 +157,17 @@
           </table>
         </div>
       </section>
+      </div>
       <% } %>
 
 
       <% if (canSeeAnswers) { %>
-      <section id="meetings">
+      <div id="meet" data-panel="main">
+      <nav class="subtabs noprint" data-tabs="meet">
+        <a href="#meetings">Meetings <span class="tabn"><%= meetings.length %></span></a>
+        <a href="#followups">Follow-ups and document requests<% if (openActions) { %> <span class="tabn"><%= openActions %> open</span><% } %></a>
+      </nav>
+      <section id="meetings" data-panel="meet">
         <h2>Meetings</h2>
         <% if (!meetings.length) { %><div class="card muted small">No meetings yet.</div><% } %>
         <% for (const m of meetings) { const past = new Date(m.starts_at) < new Date(); %>
@@ -214,7 +237,7 @@
         <% } %>
       </section>
 
-      <section id="followups">
+      <section id="followups" data-panel="meet">
         <h2>Follow-ups and document requests</h2>
         <div class="grid g2">
           <div class="card">
@@ -257,8 +280,9 @@
           </div>
         </div>
       </section>
+      </div>
       <% } %>
-      <section id="reviews">
+      <section id="reviews" data-panel="main">
         <h2>Reviews</h2>
         <% for (const k of rubrics) { const sm = summaries[k]; const R = RUBRICS[k]; %>
           <div class="card">
@@ -299,8 +323,14 @@
         <% } %>
       </section>
 
+      <% if (canDiscuss || staff !== 'reviewer') { %>
+      <div id="talk" data-panel="main">
+      <nav class="subtabs noprint" data-tabs="talk">
+        <% if (canDiscuss) { %><a href="#discussion">Partner discussion<% if (nNew) { %> <span class="count"><%= nNew %></span><% } %></a><% } %>
+        <% if (staff !== 'reviewer') { %><a href="#messages">Messages with the founder <span class="tabn"><%= messages.length %></span></a><% } %>
+      </nav>
       <% if (canDiscuss) { const myReviewOpen = staff === 'reviewer' && !(mine.length && mine.every((rv) => rv.submitted_at) && mine.length >= rubrics.length); %>
-      <section id="discussion">
+      <section id="discussion" data-panel="talk">
         <h2>Partner discussion</h2>
         <p class="muted small" style="margin-top:-6px">For ScaleGate partners on this application to message each other. <b>The founder never sees this.</b></p>
         <% if (myReviewOpen) { %><div class="notice warn small">Reviews are independent: please keep your scores and recommendation out of the discussion until you have sent your review.</div><% } %>
@@ -345,7 +375,7 @@
       <% } %>
 
       <% if (staff !== 'reviewer') { %>
-      <section id="messages">
+      <section id="messages" data-panel="talk">
         <h2>Messages with the founder</h2>
         <p class="muted small" style="margin-top:-6px">The founder sees these and is emailed. To talk privately with partners, use the <a href="#discussion">partner discussion</a>.</p>
         <div class="card">
@@ -360,9 +390,11 @@
         </div>
       </section>
       <% } %>
+      </div>
+      <% } %>
 
       <% if (history.length) { %>
-      <section id="history">
+      <section id="history" data-panel="main">
         <h2>History</h2>
         <div class="card small" style="padding:0">
           <table class="list">

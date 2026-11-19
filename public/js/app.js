@@ -65,3 +65,56 @@ document.addEventListener('change', function (e) {
     if (list) list.querySelectorAll('input[type=checkbox]').forEach(function (c) { c.checked = t.checked; });
   }
 });
+
+/*
+ * Tabs: a nav[data-tabs="g"] of #links switches between [data-panel="g"] blocks, one at a time. Tabs nest (sub-tabs).
+ * The address keeps the open tab (#reviews, #documents…), so links, refreshes and redirects land on the right one;
+ * a link to something inside a tab (#d-…, #new-meeting) opens that tab first. Without script, everything shows.
+ */
+(function () {
+  var navs = document.querySelectorAll('nav[data-tabs]');
+  if (!navs.length) return;
+  function panelsOf(g) { return Array.prototype.slice.call(document.querySelectorAll('[data-panel="' + g + '"]')); }
+  function show(panel) {
+    var g = panel.getAttribute('data-panel');
+    panelsOf(g).forEach(function (p) { p.hidden = p !== panel; });
+    document.querySelectorAll('nav[data-tabs="' + g + '"] a').forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + panel.id); });
+  }
+  function ensureDefaults() {
+    navs.forEach(function (nav) {
+      var g = nav.getAttribute('data-tabs'), ps = panelsOf(g);
+      if (ps.length && !ps.some(function (p) { return !p.hidden; })) show(ps[0]);
+      else if (ps.length && ps.filter(function (p) { return !p.hidden; }).length > 1) show(ps.filter(function (p) { return !p.hidden; })[0]);
+    });
+  }
+  function open(id) {
+    var el = id && document.getElementById(id);
+    if (!el) return false;
+    var chain = [], n = el;
+    while (n && n !== document.body) { if (n.hasAttribute && n.hasAttribute('data-panel')) chain.unshift(n); n = n.parentNode; }
+    chain.forEach(show);
+    return el;
+  }
+  ensureDefaults();
+  var first = open(decodeURIComponent(location.hash.slice(1)));
+  if (first && !first.hasAttribute('data-panel') && !first.querySelector('[data-panel]')) setTimeout(function () { first.scrollIntoView({ block: 'start' }); }, 0);
+  else if (first) setTimeout(function () { navs[0].scrollIntoView({ block: 'start' }); window.scrollBy(0, -90); }, 0);
+
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="#"]');
+    if (!a) return;
+    var id = a.getAttribute('href').slice(1), el = document.getElementById(id);
+    if (!el) return;
+    var inTabs = a.closest('nav[data-tabs]');
+    var hiddenTarget = false, n = el;
+    while (n && n !== document.body) { if (n.hidden) hiddenTarget = true; n = n.parentNode; }
+    if (!inTabs && !hiddenTarget) return; // ordinary in-page link
+    e.preventDefault();
+    open(id);
+    ensureDefaults();
+    history.replaceState(null, '', '#' + id);
+    if (inTabs) { var top = inTabs.getBoundingClientRect().top; if (top < 0 || top > window.innerHeight * 0.6) { inTabs.scrollIntoView({ block: 'start' }); window.scrollBy(0, -90); } }
+    else el.scrollIntoView({ block: 'start' });
+  });
+  window.addEventListener('hashchange', function () { open(decodeURIComponent(location.hash.slice(1))); ensureDefaults(); });
+})();
