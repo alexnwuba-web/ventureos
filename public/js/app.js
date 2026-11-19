@@ -56,3 +56,12 @@
   window.addEventListener('resize', update);
   update();
 })();
+
+// Partner discussion: "Everyone on this application" ticks every partner.
+document.addEventListener('change', function (e) {
+  var t = e.target;
+  if (t.matches && t.matches('[data-everyone]')) {
+    var list = t.closest('form').querySelector('[data-notify]');
+    if (list) list.querySelectorAll('input[type=checkbox]').forEach(function (c) { c.checked = t.checked; });
+  }
+});

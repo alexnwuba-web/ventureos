@@ -26,7 +26,7 @@
       <tbody>
       <% for (const a of apps) { const st = status(a.status); %>
         <tr>
-          <td><a href="/staff/a/<%= a.ref %>"><b><%= a.venture_name %></b></a><div class="small muted"><%= a.ref %> · <%= a.applicant_name || '' %><%= a.country ? ' · ' + a.country : '' %></div></td>
+          <td><a href="/staff/a/<%= a.ref %>"><b><%= a.venture_name %></b></a><% if (unread[a.id]) { %> <a class="count" href="/staff/a/<%= a.ref %>#discussion" title="<%= unread[a.id] %> new in the partner discussion"><%= unread[a.id] %> new</a><% } %><div class="small muted"><%= a.ref %> · <%= a.applicant_name || '' %><%= a.country ? ' · ' + a.country : '' %></div></td>
           <td><% if (a.pillar) { %><span class="badge <%= a.pillar %>"><%= pillarLabel(a.pillar) %></span> <% } %><% for (const k of a.kinds) { %><span class="badge kind"><%= kindLabel(k) %></span> <% } %></td>
           <td><span class="badge <%= st.tone %>"><%= st.label %></span><div class="small muted">Part <%= a.stage %></div></td>
           <td class="small"><%= a.reviews_done %> / <%= a.reviewers %></td>

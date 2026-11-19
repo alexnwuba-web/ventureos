@@ -7,7 +7,7 @@
   const actionLabels = { submitted: 'Sent by founder', resubmitted: 'Sent back by founder', created: 'Started', status: 'Stage changed', 'answers.saved': 'Answers saved',
     'document.uploaded': 'Document uploaded', 'document.removed': 'Document removed', 'document.opened': 'Document opened', 'document.accepted': 'Document accepted', 'document.rejected': 'Document returned',
     'reviewer.assigned': 'Reviewer assigned', 'reviewer.removed': 'Reviewer removed', 'conflict.none': 'Reviewer declared no conflict', 'conflict.declared': 'Reviewer declared a conflict',
-    'review.saved': 'Review saved', 'review.sent': 'Review sent', message: 'Message', note: 'Internal note', kinds: 'Request changed', cohort: 'Cohort set' };
+    'review.saved': 'Review saved', 'review.sent': 'Review sent', message: 'Message', note: 'Partner discussion', kinds: 'Request changed', cohort: 'Cohort set' };
 %>
 <div class="wrap">
   <p class="small"><a href="/staff">← Applications</a></p>
@@ -28,11 +28,12 @@
   </div>
   <% if (notice === 'invited') { %><div class="notice ok" style="margin-top:14px">Meeting invitation sent with a calendar invitation.</div><% } %>
   <% if (notice === 'moved') { %><div class="notice ok" style="margin-top:14px">Stage changed and the founder has been emailed.</div><% } %>
+  <% if (notice === 'posted') { %><div class="notice ok" style="margin-top:14px">Posted to the partner discussion. Any partners you ticked have been emailed.</div><% } %>
   <% if (notice === 'review-sent') { %><div class="notice ok" style="margin-top:14px">Your review has been sent.</div><% } %>
   <% if (notice === 'review-saved') { %><div class="notice ok" style="margin-top:14px">Review saved. Send it when every criterion is scored.</div><% } %>
 
   <nav class="tabs noprint" style="margin-top:18px">
-    <a href="#summary">Summary</a><a href="#answers">Answers</a><a href="#documents">Documents</a><a href="#meetings">Meetings</a><a href="#followups">Follow-ups</a><a href="#reviews">Reviews</a><a href="#messages">Messages</a><% if (history.length) { %><a href="#history">History</a><% } %>
+    <a href="#summary">Summary</a><a href="#answers">Answers</a><a href="#documents">Documents</a><a href="#meetings">Meetings</a><a href="#followups">Follow-ups</a><a href="#reviews">Reviews</a><% if (canDiscuss) { const nNew = discussion.filter((d) => d.isNew).length; %><a href="#discussion">Partner discussion<% if (nNew) { %> <span class="count"><%= nNew %></span><% } %></a><% } %><% if (staff !== 'reviewer') { %><a href="#messages">Founder messages</a><% } %><% if (history.length) { %><a href="#history">History</a><% } %>
   </nav>
 
   <div class="split">
@@ -298,22 +299,67 @@
         <% } %>
       </section>
 
-      <section id="messages">
-        <h2>Messages and notes</h2>
+      <% if (canDiscuss) { const myReviewOpen = staff === 'reviewer' && !(mine.length && mine.every((rv) => rv.submitted_at) && mine.length >= rubrics.length); %>
+      <section id="discussion">
+        <h2>Partner discussion</h2>
+        <p class="muted small" style="margin-top:-6px">For ScaleGate partners on this application to message each other. <b>The founder never sees this.</b></p>
+        <% if (myReviewOpen) { %><div class="notice warn small">Reviews are independent: please keep your scores and recommendation out of the discussion until you have sent your review.</div><% } %>
         <div class="card">
-          <% if (!messages.length) { %><p class="muted">None yet.</p><% } %>
-          <% for (const msg of messages) { %>
-            <div class="msg <%= msg.internal ? 'internal' : (msg.staff_role ? 'staff' : '') %>"><div class="who"><%= msg.author_name || '—' %><%= msg.staff_role ? '' : ' (founder)' %> · <%= when(msg.created_at) %><%= msg.internal ? ' · internal note' : '' %></div><div class="answer"><%= msg.body %></div></div>
-          <% } %>
-          <form method="post" action="/staff/a/<%= app.ref %>/message" class="noprint">
-            <textarea name="body" required placeholder="<%= staff === 'reviewer' ? 'Internal note for the team…' : 'Message to the founder, or an internal note…' %>"></textarea>
-            <div class="row" style="margin-top:8px">
-              <% if (staff !== 'reviewer') { %><label class="choice"><input type="checkbox" name="internal" value="yes" checked> Internal note (the founder does not see it)</label><% } %>
-              <button class="btn small" type="submit">Add</button>
+          <% if (!discussion.length) { %><p class="muted" style="margin-top:0">No messages yet. Start the conversation below — ask a question, flag a concern, or share what you learnt in a meeting.</p><% } %>
+          <% for (const d of discussion) { %>
+            <div class="msg internal<%= d.isNew ? ' new' : '' %>" id="d-<%= d.id %>">
+              <div class="who"><b><%= d.author_name || '—' %></b><%= d.author_title ? ' · ' + d.author_title : (d.author_role ? ' · ' + d.author_role : '') %> · <%= when(d.created_at) %>
+                <% if (d.isNew) { %> <span class="badge amber">New</span><% } %><% if (d.toMe) { %> <span class="badge blue">To you</span><% } %></div>
+              <% if (d.parent_body) { %><a class="quote" href="#d-<%= d.reply_to %>">↪ <%= d.parent_author || '—' %>: <%= d.parent_body.length > 140 ? d.parent_body.slice(0, 140) + '…' : d.parent_body %></a><% } %>
+              <div class="answer"><%= d.body %></div>
+              <div class="row small noprint" style="margin-top:6px;gap:14px">
+                <% if (d.notified_names && d.notified_names.length) { %><span class="muted">Sent to <%= d.notified_names.join(', ') %></span><% } %>
+                <a href="?reply=<%= d.id %>#discuss-form">Reply</a>
+              </div>
             </div>
+          <% } %>
+          <form method="post" action="/staff/a/<%= app.ref %>/discuss" class="noprint" id="discuss-form" style="margin-top:14px">
+            <% if (replyTo) { %>
+              <input type="hidden" name="reply_to" value="<%= replyTo.id %>">
+              <div class="quote" style="display:block;margin-bottom:8px">Replying to <b><%= replyTo.author_name %></b>: <%= replyTo.body.length > 160 ? replyTo.body.slice(0, 160) + '…' : replyTo.body %> · <a href="/staff/a/<%= app.ref %>#discussion">cancel</a></div>
+            <% } %>
+            <label class="lbl" for="discuss-body">Message to partners</label>
+            <textarea id="discuss-body" name="body" required placeholder="Write to the partners on this application…"<%= replyTo ? ' autofocus' : '' %>></textarea>
+            <% const others = team.filter((t) => t.id !== person.id); %>
+            <% if (others.length) { %>
+              <div class="field" style="margin:12px 0 0">
+                <div class="lbl" style="margin-bottom:4px">Email it to</div>
+                <label class="choice"><input type="checkbox" name="everyone" value="yes" data-everyone> <span><b>Everyone on this application</b> <span class="muted small">(<%= others.length %>)</span></span></label>
+                <div class="notify-list" data-notify>
+                  <% for (const t of others) { %>
+                    <label class="choice"><input type="checkbox" name="notify[]" value="<%= t.id %>"<%= replyTo && replyTo.author_id === t.id ? ' checked' : '' %>> <span><%= t.name || t.email %> <span class="muted small">· <%= t.assigned ? 'reviewer on this application' : (t.staff_title || t.staff_role) %></span></span></label>
+                  <% } %>
+                </div>
+                <p class="help" style="margin-top:4px">Everyone on the application can read the discussion here; only the partners you tick are emailed.</p>
+              </div>
+            <% } %>
+            <div class="row" style="margin-top:10px"><button class="btn small" type="submit">Post to partners</button></div>
           </form>
         </div>
       </section>
+      <% } %>
+
+      <% if (staff !== 'reviewer') { %>
+      <section id="messages">
+        <h2>Messages with the founder</h2>
+        <p class="muted small" style="margin-top:-6px">The founder sees these and is emailed. To talk privately with partners, use the <a href="#discussion">partner discussion</a>.</p>
+        <div class="card">
+          <% if (!messages.length) { %><p class="muted">None yet.</p><% } %>
+          <% for (const msg of messages) { %>
+            <div class="msg <%= msg.staff_role ? 'staff' : '' %>"><div class="who"><%= msg.author_name || '—' %><%= msg.staff_role ? '' : ' (founder)' %> · <%= when(msg.created_at) %></div><div class="answer"><%= msg.body %></div></div>
+          <% } %>
+          <form method="post" action="/staff/a/<%= app.ref %>/message" class="noprint">
+            <textarea name="body" required placeholder="Message to the founder…"></textarea>
+            <div class="row" style="margin-top:8px"><button class="btn small" type="submit">Send to founder</button></div>
+          </form>
+        </div>
+      </section>
+      <% } %>
 
       <% if (history.length) { %>
       <section id="history">

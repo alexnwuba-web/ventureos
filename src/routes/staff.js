@@ -22,9 +22,15 @@ const academyLine = (declined) => (declined
   : 'OxiAcademy, our learning partner, has courses and clinics for founders, and supports programmes such as iDICE.')
   + (config.ecosystem.oxiacademy.url ? ` ${config.ecosystem.oxiacademy.url}` : '');
 const P = require('../domain/portal');
+const DSC = require('../domain/discussion');
 
 const r = express.Router();
 r.use('/staff', requireStaff());
+// The menu shows how many partner-discussion posts this person has not read.
+r.use('/staff', async (req, res, next) => {
+  try { res.locals.discussUnread = await DSC.unreadTotal(req.person, req.staff); } catch (e) { res.locals.discussUnread = 0; }
+  next();
+});
 
 const err = (status, message) => Object.assign(new Error(message), { status });
 const isAdmin = (req) => req.staff === 'admin';
@@ -68,7 +74,8 @@ r.get('/staff', async (req, res) => {
     WHERE ${where.join(' AND ')} ORDER BY a.submitted_at DESC NULLS LAST LIMIT 500`, params);
   const counts = req.staff === 'reviewer' ? [] : await db.many(`SELECT status, count(*)::int AS n FROM applications GROUP BY status`);
   const drafts = req.staff === 'reviewer' ? 0 : (await db.one(`SELECT count(*)::int AS n FROM applications WHERE status = 'draft'`)).n;
-  res.render('staff/home', { title: 'Applications', apps, counts, drafts, q: req.query });
+  const unread = await DSC.unreadByApp(req.person, req.staff);
+  res.render('staff/home', { title: 'Applications', apps, counts, drafts, q: req.query, unread });
 });
 
 r.get('/staff/a/:ref', async (req, res) => {
@@ -86,8 +93,16 @@ r.get('/staff/a/:ref', async (req, res) => {
   const othersHidden = req.staff === 'reviewer' && !sentMine;
   if (othersHidden) reviews = mine;
   const summaries = Object.fromEntries(rubrics.map((k) => [k, S.summarise(reviews.filter((rv) => rv.rubric === k))]));
-  const messages = await db.many(`SELECT m.*, p.name AS author_name, p.staff_role FROM messages m LEFT JOIN people p ON p.id = m.author_id
-    WHERE m.application_id = $1 ${req.staff === 'reviewer' ? 'AND m.internal' : ''} ORDER BY m.created_at`, [app.id]);
+  // Messages with the founder; reviewers do not write to founders.
+  const messages = req.staff === 'reviewer' ? [] : await db.many(`SELECT m.*, p.name AS author_name, p.staff_role FROM messages m LEFT JOIN people p ON p.id = m.author_id
+    WHERE m.application_id = $1 AND NOT m.internal ORDER BY m.created_at`, [app.id]);
+  // Partner discussion: partners message each other about this application; the founder never sees it.
+  const canDiscuss = DSC.canJoin(req.staff, app);
+  const discussion = canDiscuss ? await DSC.postsOf(app.id, req.person.id) : [];
+  const team = canDiscuss ? await DSC.teamOf(app.id) : [];
+  const replyTo = canDiscuss && req.query.reply ? discussion.find((d) => d.id === String(req.query.reply)) || null : null;
+  if (canDiscuss) await DSC.markRead(app.id, req.person.id);
+  if (canDiscuss) res.locals.discussUnread = await DSC.unreadTotal(req.person, req.staff);
   const history = req.staff === 'reviewer' ? [] : await db.many(`SELECT au.*, p.name AS actor_name FROM audit au LEFT JOIN people p ON p.id = au.actor_id
     WHERE au.application_id = $1 ORDER BY au.at DESC LIMIT 200`, [app.id]);
   const reviewersAvailable = canRun(req) ? await db.many(`SELECT id, name, email, staff_role FROM people WHERE staff_role IS NOT NULL ORDER BY name`) : [];
@@ -96,7 +111,7 @@ r.get('/staff/a/:ref', async (req, res) => {
   const meetings = canSeeAnswers ? await P.meetingsOf(app.id) : [];
   const followups = canSeeAnswers ? await P.followupsOf(app.id) : { actions: [], requests: [] };
   res.render('staff/application', { title: `${app.venture_name} · ${app.ref}`, app, answers: canSeeAnswers ? answers : {}, canSeeAnswers, docs: canSeeAnswers ? docs : [],
-    ready, analysis, assignments, reviews, meetings, followups, P, canMeet: ['admin', 'officer', 'committee'].includes(req.staff), canRun: canRun(req), mine, othersHidden, summaries, rubrics, messages, history, reviewersAvailable, cohorts,
+    ready, analysis, assignments, reviews, meetings, followups, P, canMeet: ['admin', 'officer', 'committee'].includes(req.staff), canRun: canRun(req), mine, othersHidden, summaries, rubrics, messages, discussion, team, canDiscuss, replyTo, history, reviewersAvailable, cohorts,
     sections: Q.sectionsFor(app.kinds, app.stage), docList: D.docsFor(app.kinds, answers, app.stage), PARTS: Q.PARTS, RUBRICS: S.RUBRICS,
     // A practical challenge is for residencies; due diligence is for funding requests.
     NEXT: (W.NEXT[app.status] || []).filter((t) => (t !== 'challenge' || app.kinds.includes('residency')) && (t !== 'due_diligence' || app.kinds.some((k) => k !== 'residency'))), Q, isAdmin: isAdmin(req), notice: req.query.n || null });
@@ -180,10 +195,37 @@ r.post('/staff/a/:ref/review', async (req, res) => {
   res.redirect(`/staff/a/${app.ref}?n=${send ? 'review-sent' : 'review-saved'}#reviews`);
 });
 
+// ── Partner discussion ──
+r.post('/staff/a/:ref/discuss', async (req, res) => {
+  const app = await visible(req);
+  if (!DSC.canJoin(req.staff, app)) throw err(403, 'You cannot take part in the discussion on this application.');
+  const body = String(req.body.body || '').trim().slice(0, 6000);
+  if (!body) return res.redirect(`/staff/a/${app.ref}#discussion`);
+  const team = await DSC.teamOf(app.id);
+  // "Everyone" sends to every partner on the application; otherwise to the partners ticked.
+  const notify = req.body.everyone === 'yes' ? team.map((t) => t.id) : req.body['notify[]'] || req.body.notify;
+  const { message, recipients } = await DSC.post(app, req.person, { body, replyTo: req.body.reply_to || null, notify });
+  await audit(req.person.id, app.id, 'note', { to: recipients.map((t) => t.name || t.email) });
+  for (const t of recipients) {
+    await mail.send({ to: t.email, replyTo: mail.officer(req.person), subject: `Partner discussion: ${app.venture_name} (${app.ref})`,
+      lines: [`${t.name ? 'Dear ' + t.name.split(' ')[0] + ',' : 'Hello,'}`, `${req.person.name || req.person.email} wrote about ${app.venture_name} (${app.ref}):`, body,
+        'Only ScaleGate partners can see this discussion; the founder cannot. Please reply in VentureOS so the whole team sees it.'],
+      link: { label: 'Reply in VentureOS', url: `${config.baseUrl}/staff/a/${app.ref}?reply=${message.id}#discussion` } });
+  }
+  res.redirect(`/staff/a/${app.ref}?n=posted#discussion`);
+});
+
+r.get('/staff/discussions', async (req, res) => {
+  const list = await DSC.inbox(req.person, req.staff);
+  res.render('staff/discussions', { title: 'Partner discussions', list });
+});
+
 r.post('/staff/a/:ref/message', async (req, res) => {
   const app = await visible(req);
   const body = String(req.body.body || '').trim().slice(0, 4000);
-  const internal = req.staff === 'reviewer' || req.body.internal === 'yes';
+  // Reviewers talk with partners in the discussion, never with founders.
+  if (req.staff === 'reviewer') throw err(403, 'Reviewers use the partner discussion; only officers write to founders.');
+  const internal = req.body.internal === 'yes';
   if (body) {
     await db.query('INSERT INTO messages (application_id, author_id, body, internal) VALUES ($1,$2,$3,$4)', [app.id, req.person.id, body, internal]);
     await audit(req.person.id, app.id, internal ? 'note' : 'message', null);
