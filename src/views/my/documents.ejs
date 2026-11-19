@@ -25,6 +25,12 @@
           </td>
         </tr>
       <% } %>
+      <% const known = new Set(list.map((d) => d.key)); const sentWith = docs.filter((x) => !known.has(x.doc_type)); %>
+      <% if (sentWith.length) { %>
+        <tr><td><b>Sent with messages and requests</b></td><td>
+          <% for (const x of sentWith) { %><div class="small"><a href="/files/<%= x.id %>" target="_blank"><%= x.filename %></a> <span class="muted"><%= x.note || '' %></span></div><% } %>
+        </td></tr>
+      <% } %>
       </tbody>
     </table>
   </div>

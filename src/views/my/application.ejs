@@ -33,14 +33,39 @@
       </div>
 
       <div class="card" id="messages">
+        <% const rTo = typeof replyTo !== 'undefined' ? replyTo : null; const waiting = messages.filter((m) => m.awaiting);
+           const pick = messages.find((m) => m.id === rTo && !m.fromFounder) || waiting[waiting.length - 1] || null; %>
         <h2 style="margin-top:0">Messages</h2>
+        <% if (typeof msgError !== 'undefined' && msgError) { %><div class="notice err"><%= msgError %></div><% } %>
+        <% if (notice === 'message-sent') { %><div class="notice ok">Sent. Any files you attached are now with your application's documents.</div><% } %>
+        <% if (waiting.length) { %><div class="notice warn">ScaleGate is waiting for your reply to <b><%= waiting.map((m) => m.ref).join(', ') %></b>.</div><% } %>
         <% if (!messages.length) { %><p class="muted">No messages yet. If you have a question about your application, write to us here.</p><% } %>
         <% for (const m of messages) { %>
-          <div class="msg <%= m.staff_role ? 'staff' : '' %>"><div class="who"><%= m.staff_role ? 'ScaleGate Africa' : (m.author_name || 'You') %> · <%= when(m.created_at) %></div><div class="answer"><%= m.body %></div></div>
+          <div class="msg <%= m.fromFounder ? '' : 'staff' %>" id="m-<%= m.id %>">
+            <div class="who"><b><%= m.ref || '' %></b> · <%= m.fromFounder ? 'You' : 'ScaleGate Africa' %> · <%= when(m.created_at) %>
+              <% if (m.parent_ref) { %> · in reply to <a href="#m-<%= m.reply_to %>"><%= m.parent_ref %></a><% } %>
+              <% if (m.awaiting) { %> <span class="badge amber">Awaiting your reply</span><% } else if (!m.fromFounder && m.replies.length) { %> <span class="badge green">Replied</span><% } %></div>
+            <div class="answer"><%= m.body %></div>
+            <% if (m.files.length) { %><div class="small" style="margin-top:6px">📎 <% m.files.forEach((f, i) => { %><%= i ? ' · ' : '' %><a href="/files/<%= f.id %>" target="_blank"><%= f.filename %></a><% }) %></div><% } %>
+            <% if (!m.fromFounder && !['withdrawn'].includes(app.status)) { %><p class="small" style="margin:6px 0 0"><a href="?reply=<%= m.id %>#reply-form">Reply to <%= m.ref %></a></p><% } %>
+          </div>
         <% } %>
         <% if (!['withdrawn'].includes(app.status)) { %>
-        <form method="post" action="/my/a/<%= app.ref %>/message">
-          <textarea name="body" placeholder="Write a message…" required maxlength="4000"></textarea>
+        <form method="post" action="/my/a/<%= app.ref %>/message" enctype="multipart/form-data" id="reply-form" style="margin-top:14px">
+          <% const ours = messages.filter((m) => !m.fromFounder); %>
+          <% if (ours.length) { %>
+            <label class="lbl" for="reply_to">Replying to</label>
+            <select id="reply_to" name="reply_to" style="margin-bottom:10px">
+              <option value="">A new message (not a reply)</option>
+              <% for (const m of ours.slice().reverse()) { %><option value="<%= m.id %>" <%= pick && pick.id === m.id ? 'selected' : '' %>><%= m.ref %> — <%= m.body.length > 60 ? m.body.slice(0, 60) + '…' : m.body %><%= m.awaiting ? ' (awaiting your reply)' : '' %></option><% } %>
+            </select>
+          <% } %>
+          <textarea name="body" placeholder="Write a message…" maxlength="4000"<%= rTo ? ' autofocus' : '' %>></textarea>
+          <div class="field" style="margin:10px 0 0">
+            <label class="lbl" for="msg-files">Attach files <span class="muted small">(optional — up to 5, 20 MB each)</span></label>
+            <input id="msg-files" type="file" name="files" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt,.zip">
+            <p class="help" style="margin-top:4px">Attached files are added to your application's documents, marked with this message's reference.</p>
+          </div>
           <p style="margin:8px 0 0"><button class="btn small" type="submit">Send message</button></p>
         </form>
         <% } %>

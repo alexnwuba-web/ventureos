@@ -23,6 +23,7 @@ const academyLine = (declined) => (declined
   + (config.ecosystem.oxiacademy.url ? ` ${config.ecosystem.oxiacademy.url}` : '');
 const P = require('../domain/portal');
 const DSC = require('../domain/discussion');
+const C = require('../domain/correspondence');
 
 const r = express.Router();
 r.use('/staff', requireStaff());
@@ -94,8 +95,7 @@ r.get('/staff/a/:ref', async (req, res) => {
   if (othersHidden) reviews = mine;
   const summaries = Object.fromEntries(rubrics.map((k) => [k, S.summarise(reviews.filter((rv) => rv.rubric === k))]));
   // Messages with the founder; reviewers do not write to founders.
-  const messages = req.staff === 'reviewer' ? [] : await db.many(`SELECT m.*, p.name AS author_name, p.staff_role FROM messages m LEFT JOIN people p ON p.id = m.author_id
-    WHERE m.application_id = $1 AND NOT m.internal ORDER BY m.created_at`, [app.id]);
+  const messages = req.staff === 'reviewer' ? [] : await C.thread(app);
   // Partner discussion: partners message each other about this application; the founder never sees it.
   const canDiscuss = DSC.canJoin(req.staff, app);
   const discussion = canDiscuss ? await DSC.postsOf(app.id, req.person.id) : [];
@@ -123,19 +123,20 @@ r.post('/staff/a/:ref/status', async (req, res) => {
   const note = String(req.body.note || '').trim().slice(0, 4000);
   if (to === 'info_requested' && !note) throw err(400, 'Say what information you need: the founder sees this note.');
   await A.move(app, to, req.person, note);
-  if (note && (to === 'info_requested' || W.isDecision(to))) {
-    await db.query('INSERT INTO messages (application_id, author_id, body) VALUES ($1,$2,$3)', [app.id, req.person.id, note]);
-  }
+  // The note is filed as a numbered message; a request for information awaits the founder's reply.
+  const msg = note && (to === 'info_requested' || W.isDecision(to)) ? await C.toFounder(app, req.person, note, { needsReply: to === 'info_requested' }) : null;
   const st = W.STATUSES[to];
   const lines = to === 'full_requested'
     ? [`Dear ${app.applicant_name || 'founder'},`, `Thank you for your initial submission for ${app.venture_name} (${app.ref}). We have reviewed it and would like to proceed.`,
       ...(note ? [note] : []),
       'Your application is now open for the full documentation: the remaining questions and documents, including the business background questionnaire, financial statements and tax returns. Sign in to see exactly what is needed, then send it when complete.']
     : to === 'info_requested'
-    ? [`Dear ${app.applicant_name || 'founder'},`, `We need more information on your application ${app.ref} (${app.venture_name}):`, note, 'Your application is open again for changes. Update it and send it back to us.']
+    ? [`Dear ${app.applicant_name || 'founder'},`, `We need more information on your application ${app.ref} (${app.venture_name}):`, note, 'Your application is open again for changes. Update it and send it back to us.',
+      `Our reference: ${msg.ref}. To answer this message or send files, use "Reply" next to ${msg.ref} in VentureOS so your answer and attachments are kept with your application.`]
     : [`Dear ${app.applicant_name || 'founder'},`, `Your application ${app.ref} (${app.venture_name}) has moved to: ${st.founder}.`, ...(note && W.isDecision(to) ? [note] : []),
       ...(W.isDecision(to) ? [academyLine(to === 'declined')] : [])];
-  await mail.send({ replyTo: mail.officer(req.person), to: app.applicant_email, subject: `VentureOS ${app.ref}: ${st.founder}`, lines, link: { label: 'See your application', url: `${config.baseUrl}/my/a/${app.ref}` } });
+  await mail.send({ replyTo: mail.officer(req.person), to: app.applicant_email, subject: `${msg ? '[' + msg.ref + '] ' : ''}VentureOS ${app.ref}: ${st.founder}`, lines,
+    link: msg && msg.needs_reply ? { label: `Reply to ${msg.ref}`, url: `${config.baseUrl}/my/a/${app.ref}?reply=${msg.id}#messages` } : { label: 'See your application', url: `${config.baseUrl}/my/a/${app.ref}` } });
   res.redirect(`/staff/a/${app.ref}?n=moved`);
 });
 
@@ -225,16 +226,25 @@ r.post('/staff/a/:ref/message', async (req, res) => {
   const body = String(req.body.body || '').trim().slice(0, 4000);
   // Reviewers talk with partners in the discussion, never with founders.
   if (req.staff === 'reviewer') throw err(403, 'Reviewers use the partner discussion; only officers write to founders.');
-  const internal = req.body.internal === 'yes';
-  if (body) {
-    await db.query('INSERT INTO messages (application_id, author_id, body, internal) VALUES ($1,$2,$3,$4)', [app.id, req.person.id, body, internal]);
-    await audit(req.person.id, app.id, internal ? 'note' : 'message', null);
-    if (!internal) {
-      await A.markAnswered(app.id);
-      await mail.send({ replyTo: mail.officer(req.person), to: app.applicant_email, subject: `A message about your VentureOS application ${app.ref}`,
-        lines: [`Dear ${app.applicant_name || 'founder'},`, body], link: { label: 'Reply in VentureOS', url: `${config.baseUrl}/my/a/${app.ref}#messages` } });
-    }
+  if (body && req.body.internal === 'yes') {
+    await db.query('INSERT INTO messages (application_id, author_id, body, internal) VALUES ($1,$2,$3,true)', [app.id, req.person.id, body]);
+    await audit(req.person.id, app.id, 'note', null);
+  } else if (body) {
+    const m = await C.toFounder(app, req.person, body, { needsReply: req.body.no_reply !== 'yes' });
+    await audit(req.person.id, app.id, 'message', { ref: m.ref });
+    await A.markAnswered(app.id);
+    await mail.send({ replyTo: mail.officer(req.person), to: app.applicant_email, subject: `[${m.ref}] A message about your VentureOS application ${app.ref}`,
+      lines: [`Dear ${app.applicant_name || 'founder'},`, body, `Our reference: ${m.ref}.`,
+        ...(m.needs_reply ? [`Please answer using "Reply" next to ${m.ref} in VentureOS. You can attach files there, and they are kept with your application's documents.`] : [])],
+      link: { label: m.needs_reply ? `Reply to ${m.ref}` : 'Open in VentureOS', url: `${config.baseUrl}/my/a/${app.ref}?reply=${m.id}#messages` } });
   }
+  res.redirect(`/staff/a/${app.ref}#messages`);
+});
+
+// Officers can mark a message as no longer waiting for the founder (for example, answered by phone).
+r.post('/staff/a/:ref/message/:id/settle', requireStaff('admin', 'officer', 'committee'), async (req, res) => {
+  const app = await visible(req);
+  await db.query('UPDATE messages SET needs_reply = $3 WHERE id = $1 AND application_id = $2 AND NOT internal', [req.params.id, app.id, req.body.reopen === 'yes']);
   res.redirect(`/staff/a/${app.ref}#messages`);
 });
 

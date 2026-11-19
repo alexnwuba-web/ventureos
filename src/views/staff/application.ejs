@@ -153,6 +153,19 @@
                 <% } %>
               </td></tr>
             <% } %>
+            <% const known = new Set(docList.map((d) => d.key)); const extra = docs.filter((x) => !known.has(x.doc_type)); %>
+            <% if (extra.length) { %>
+              <tr><td><b>Sent with messages and requests</b><div class="small muted">Filed under the message reference</div></td><td>
+                <% for (const x of extra) { %>
+                  <div class="row small" style="margin-bottom:6px">
+                    <a href="/files/<%= x.id %>" target="_blank"><%= x.filename %></a>
+                    <span class="muted"><%= Math.round((x.size || 0) / 1024) %> KB · <%= date(x.created_at) %></span>
+                    <% if (x.note) { %><span class="badge muted"><%= x.note %></span><% } %>
+                    <% if (x.message_id) { %><a href="#m-<%= x.message_id %>">see message</a><% } %>
+                  </div>
+                <% } %>
+              </td></tr>
+            <% } %>
             </tbody>
           </table>
         </div>
@@ -327,7 +340,7 @@
       <div id="talk" data-panel="main">
       <nav class="subtabs noprint" data-tabs="talk">
         <% if (canDiscuss) { %><a href="#discussion">Partner discussion<% if (nNew) { %> <span class="count"><%= nNew %></span><% } %></a><% } %>
-        <% if (staff !== 'reviewer') { %><a href="#messages">Messages with the founder <span class="tabn"><%= messages.length %></span></a><% } %>
+        <% if (staff !== 'reviewer') { const aw = messages.filter((m) => m.awaiting).length; %><a href="#messages">Messages with the founder <span class="tabn"><%= messages.length %><%= aw ? ' · ' + aw + ' awaiting reply' : '' %></span></a><% } %>
       </nav>
       <% if (canDiscuss) { const myReviewOpen = staff === 'reviewer' && !(mine.length && mine.every((rv) => rv.submitted_at) && mine.length >= rubrics.length); %>
       <section id="discussion" data-panel="talk">
@@ -381,11 +394,26 @@
         <div class="card">
           <% if (!messages.length) { %><p class="muted">None yet.</p><% } %>
           <% for (const msg of messages) { %>
-            <div class="msg <%= msg.staff_role ? 'staff' : '' %>"><div class="who"><%= msg.author_name || '—' %><%= msg.staff_role ? '' : ' (founder)' %> · <%= when(msg.created_at) %></div><div class="answer"><%= msg.body %></div></div>
+            <div class="msg <%= msg.fromFounder ? '' : 'staff' %>" id="m-<%= msg.id %>">
+              <div class="who"><b><%= msg.ref || '' %></b> · <%= msg.author_name || '—' %><%= msg.fromFounder ? ' (founder)' : '' %> · <%= when(msg.created_at) %>
+                <% if (msg.parent_ref) { %> · in reply to <a href="#m-<%= msg.reply_to %>"><%= msg.parent_ref %></a><% } %>
+                <% if (msg.awaiting) { %> <span class="badge amber">Awaiting reply</span><% } else if (!msg.fromFounder && msg.replies.length) { %> <span class="badge green">Replied <%= date(msg.replies[0].created_at) %> (<%= msg.replies.map((x) => x.ref).join(', ') %>)</span><% } %></div>
+              <div class="answer"><%= msg.body %></div>
+              <% if (msg.files.length) { %><div class="small" style="margin-top:6px">📎 <% msg.files.forEach((f, i) => { %><%= i ? ' · ' : '' %><a href="/files/<%= f.id %>" target="_blank"><%= f.filename %></a> <span class="muted">(<%= Math.round((f.size || 0) / 1024) %> KB)</span><% }) %> <span class="muted">— filed in <a href="#documents">Documents</a></span></div><% } %>
+              <% if (!msg.fromFounder && canRun && !msg.replies.length) { %>
+                <form method="post" action="/staff/a/<%= app.ref %>/message/<%= msg.id %>/settle" class="noprint" style="margin-top:6px">
+                  <% if (msg.needs_reply) { %><button class="linkbtn small" type="submit">Mark as no reply needed</button><% } else { %><input type="hidden" name="reopen" value="yes"><button class="linkbtn small" type="submit">Wait for a reply</button><% } %>
+                </form>
+              <% } %>
+            </div>
           <% } %>
           <form method="post" action="/staff/a/<%= app.ref %>/message" class="noprint">
             <textarea name="body" required placeholder="Message to the founder…"></textarea>
-            <div class="row" style="margin-top:8px"><button class="btn small" type="submit">Send to founder</button></div>
+            <div class="row" style="margin-top:8px">
+              <label class="choice"><input type="checkbox" name="no_reply" value="yes"> <span>No reply needed (just information)</span></label>
+              <button class="btn small" type="submit">Send to founder</button>
+            </div>
+            <p class="help" style="margin-top:4px">Each message gets a reference (for example <%= app.ref %>-M01) shown in the email subject. The founder replies against it in VentureOS, and any files they attach are filed in Documents.</p>
           </form>
         </div>
       </section>

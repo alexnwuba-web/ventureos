@@ -15,6 +15,7 @@ const W = require('../domain/workflow');
 const { audit } = require('../lib/audit');
 const mail = require('../lib/mail');
 const P = require('../domain/portal');
+const C = require('../domain/correspondence');
 
 const r = express.Router();
 r.use('/my', requirePerson);
@@ -27,6 +28,16 @@ const upload = multer({
   }),
   limits: { fileSize: config.uploadLimit, files: 1 },
   fileFilter: (req, file, cb) => cb(ALLOWED.test(file.originalname) ? null : Object.assign(new Error('Upload a PDF, Word, Excel, PowerPoint, image, text or zip file.'), { status: 400 }), ALLOWED.test(file.originalname)),
+});
+
+// Up to five files with a message.
+const uploadMany = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => { const d = path.join(config.uploadsDir, 'tmp'); fs.mkdirSync(d, { recursive: true }); cb(null, d); },
+    filename: (req, file, cb) => cb(null, crypto.randomUUID()),
+  }),
+  limits: { fileSize: config.uploadLimit, files: 5 },
+  fileFilter: (req, file, cb) => cb(ALLOWED.test(file.originalname) ? null : Object.assign(new Error('Attach PDF, Word, Excel, PowerPoint, image, text or zip files.'), { status: 400 }), ALLOWED.test(file.originalname)),
 });
 
 /** The founder's own application, or 404. */
@@ -86,11 +97,10 @@ r.get('/my/a/:ref', async (req, res) => {
     const any = s.fields.some((f) => Q.filled(f, answers[f.key]));
     return { ...s, required: req2.length, done, started: any };
   });
-  const messages = await db.many(`SELECT m.*, p.name AS author_name, p.staff_role FROM messages m LEFT JOIN people p ON p.id = m.author_id
-    WHERE m.application_id = $1 AND NOT m.internal ORDER BY m.created_at`, [app.id]);
+  const messages = await C.thread(app);
   const counts = await P.counts(app.id);
   const upcoming = (await P.meetingsOf(app.id)).filter((m) => ['proposed', 'accepted', 'reschedule'].includes(m.status) && new Date(m.starts_at) > new Date());
-  res.render('my/application', { title: `${app.venture_name} · ${app.ref}`, app, sections, ready, docs, messages, counts, upcoming, P, tab: 'overview', editable: W.editable(app.status), kinds: Q.KINDS, notice: req.query.n || null });
+  res.render('my/application', { title: `${app.venture_name} · ${app.ref}`, app, sections, ready, docs, messages, counts, upcoming, P, tab: 'overview', editable: W.editable(app.status), kinds: Q.KINDS, notice: req.query.n || null, msgError: req.query.e || null, replyTo: req.query.reply || null });
 });
 
 r.post('/my/a/:ref/kinds', async (req, res) => {
@@ -210,14 +220,29 @@ r.post('/my/a/:ref/withdraw', async (req, res) => {
   res.redirect(`/my/a/${app.ref}`);
 });
 
-r.post('/my/a/:ref/message', async (req, res) => {
+r.post('/my/a/:ref/message', (req, res, next) => uploadMany.array('files', 5)(req, res, (e) => {
+  if (!e) return next();
+  for (const f of req.files || []) if (fs.existsSync(f.path)) fs.unlinkSync(f.path);
+  const msg = e.code === 'LIMIT_FILE_SIZE' ? 'Each file must be 20 MB or smaller.' : e.code === 'LIMIT_FILE_COUNT' ? 'Attach up to five files at a time.' : e.message;
+  res.redirect(`/my/a/${req.params.ref}?e=${encodeURIComponent(msg)}#messages`);
+}), async (req, res) => {
   const app = await mine(req);
+  const files = req.files || [];
   const body = String(req.body.body || '').trim().slice(0, 4000);
-  if (body) {
-    await db.query('INSERT INTO messages (application_id, author_id, body) VALUES ($1,$2,$3)', [app.id, req.person.id, body]);
-    await audit(req.person.id, app.id, 'message', null);
+  if (!body && !files.length) return res.redirect(`/my/a/${app.ref}#messages`);
+  const { message, parent, files: saved } = await C.fromFounder(app, req.person, body || '(files attached)', req.body.reply_to || null, files);
+  await audit(req.person.id, app.id, 'message', { ref: message.ref, reply_to: parent ? parent.ref : undefined, files: saved.length || undefined });
+  // Tell the officer who wrote the message being answered; otherwise the administrators.
+  const officer = parent ? await db.one(`SELECT email, name FROM people WHERE id = $1 AND staff_role IS NOT NULL AND staff_active IS NOT FALSE`, [parent.author_id]) : null;
+  const to = officer ? [officer] : await db.many(`SELECT email, name FROM people WHERE staff_role = 'admin' AND staff_active IS NOT FALSE`);
+  for (const t of to) {
+    await mail.send({ to: t.email, replyTo: app.applicant_email,
+      subject: `[${parent ? parent.ref : message.ref}] ${parent ? 'Reply' : 'Message'} from ${app.venture_name} (${app.ref})${saved.length ? ` with ${saved.length} attachment${saved.length > 1 ? 's' : ''}` : ''}`,
+      lines: [`${req.person.name || app.applicant_name || 'The founder'} ${parent ? `replied to ${parent.ref}` : 'wrote'} (${message.ref}):`, body || '(no text)',
+        ...(saved.length ? [`Attached, and filed with the application's documents: ${saved.map((f) => f.filename).join(', ')}.`] : [])],
+      link: { label: 'Open in VentureOS', url: `${config.baseUrl}/staff/a/${app.ref}#messages` } });
   }
-  res.redirect(`/my/a/${app.ref}#messages`);
+  res.redirect(`/my/a/${app.ref}?n=message-sent#messages`);
 });
 
 // ── The portal: meetings, follow-ups and requested documents ──
