@@ -93,6 +93,8 @@ const PARTNER_INTERESTS = {
   invest: 'Invest in or lend to VentureOS ventures',
 };
 const ORG_TYPES = ['Foundation', 'Development-finance institution', 'Government or agency', 'Company', 'Investor or bank', 'University or research body', 'Donor', 'Ecosystem partner', 'Other'];
+r.get('/privacy', (req, res) => res.render('public/privacy', { title: 'Privacy policy' }));
+r.get('/terms', (req, res) => res.render('public/terms', { title: 'Terms of use' }));
 r.get('/partner', (req, res) => res.render('public/partner', { title: 'Partner with us', PARTNER_INTERESTS, ORG_TYPES, error: null, sent: req.query.sent === '1', b: {} }));
 r.post('/partner', async (req, res) => {
   const b = req.body || {};

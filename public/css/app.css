@@ -399,3 +399,4 @@ a.count:hover { color: var(--on-pillar); }
 .subtabs a.on .tabn { color: var(--paper-300); }
 [data-panel] > h2:first-child { margin-top: 0; }
 @media print { [data-panel][hidden] { display: block !important; } }
+.legal h3 { margin-top: 24px; } .legal ul { padding-left: 20px; } .legal li { margin: 0 0 8px; }

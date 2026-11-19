@@ -72,3 +72,10 @@ test('forged, cancelled, unconfirmed and failed Google sign-ins are refused', as
   const a3 = request.agent(app);
   assert.equal((await viaGoogle(a3, null, 'bad-code')).status, 400);
 });
+
+test('privacy policy and terms pages exist for Google and founders', async () => {
+  const p = await request(app).get('/privacy').expect(200);
+  assert.match(p.text, /Privacy <em>policy<\/em>/); assert.match(p.text, /Limited Use/);
+  assert.match((await request(app).get('/terms').expect(200)).text, /Terms of <em>use<\/em>/);
+  assert.match((await request(app).get('/').expect(200)).text, /href="\/privacy"/);
+});
