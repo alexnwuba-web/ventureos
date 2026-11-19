@@ -1,0 +1,29 @@
+<%- include('../partials/head') %>
+<div class="wrap">
+  <div class="pagehead">
+    <div><p class="eyebrow">Staff</p><h1>Partner <em>discussions</em></h1>
+      <p class="muted" style="margin:0">Where ScaleGate partners talk to each other about applications. Founders never see these. Unread first.</p></div>
+  </div>
+  <% if (!list.length) { %>
+    <div class="card"><p class="muted" style="margin:0">No discussions yet. Open an application and use <b>Partner discussion</b> to message the other partners on it.</p></div>
+  <% } else { %>
+  <div class="card" style="padding:0">
+    <table class="list">
+      <thead><tr><th>Application</th><th>Latest</th><th>Posts</th><th>When</th></tr></thead>
+      <tbody>
+      <% for (const d of list) { const st = status(d.status); %>
+        <tr>
+          <td><a href="/staff/a/<%= d.ref %>#discussion"><b><%= d.venture_name %></b></a>
+            <% if (d.unread) { %> <span class="count"><%= d.unread %> new</span><% } %><% if (d.for_me) { %> <span class="badge blue">To you</span><% } %>
+            <div class="small muted"><%= d.ref %> <span class="badge <%= st.tone %>" style="font-size:11px"><%= st.label %></span></div></td>
+          <td class="small"><% if (d.last) { %><b><%= d.last.author || '—' %>:</b> <%= d.last.body.length > 120 ? d.last.body.slice(0, 120) + '…' : d.last.body %><% } %></td>
+          <td class="small"><%= d.posts %></td>
+          <td class="small muted nowrap"><%= when(d.last_at) %></td>
+        </tr>
+      <% } %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</div>
+<%- include('../partials/foot') %>

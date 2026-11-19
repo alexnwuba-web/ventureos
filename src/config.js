@@ -21,6 +21,8 @@ module.exports = {
   langUrl: (env.OXI_LANG_URL || 'https://oxi-group.com').replace(/\/$/, ''),
   uploadsDir: env.VENTUREOS_UPLOADS || path.join(__dirname, '..', 'uploads'),
   uploadLimit: 20 * 1024 * 1024,
+  // Sign in with Google (optional): set both to show "Continue with Google" on the sign-in page.
+  google: { clientId: env.VENTUREOS_GOOGLE_CLIENT_ID || '', clientSecret: env.VENTUREOS_GOOGLE_CLIENT_SECRET || '' },
   smtp: {
     host: env.SMTP_HOST || '', port: Number(env.SMTP_PORT || 587), user: env.SMTP_USER || '', pass: env.SMTP_PASS || '',
     from: env.SMTP_FROM || 'VentureOS <no-reply@scalegate.org>',
