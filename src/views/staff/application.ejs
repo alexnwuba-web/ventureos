@@ -381,7 +381,9 @@
 
     <aside class="noprint">
       <% if (onClock(app)) { const wd = workingDaysSince(app.submitted_at); %>
-        <div class="notice <%= wd >= 10 ? 'err' : wd >= 7 ? 'warn' : '' %>">Answer due to the founder by <b><%= date(answerDue(app.submitted_at)) %></b> (working day <%= wd %> of 10).</div>
+        <div class="notice <%= wd >= 10 ? 'err' : wd >= 7 ? 'warn' : '' %>">Answer due to the founder by <b><%= date(answerDue(app.submitted_at)) %></b> (working day <%= wd %> of 10). Sending the founder a message, a request for information, a meeting invitation or a decision counts as the answer.</div>
+      <% } else if (app.answered_at) { %>
+        <div class="notice ok">Answered <b><%= when(app.answered_at) %></b> — the ten-working-day clock has stopped.</div>
       <% } %>
       <% if (isAdmin) { %>
         <% if (app.vetoed) { %><div class="notice err">Vetoed — out of the active list.<form method="post" action="/staff/a/<%= app.ref %>/veto"><input type="hidden" name="on" value="no"><button class="linkbtn small" type="submit">Lift the veto</button></form></div><% } %>

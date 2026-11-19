@@ -46,6 +46,7 @@ function workingDaysSince(from) {
   return n;
 }
 /** Statuses on the ten-working-day clock (the initial submission waiting for an answer). */
-const onClock = (a) => ['submitted', 'screening'].includes(a.status) && (a.stage || 1) === 1;
+/** The ten-working-day clock runs on a sent initial submission until ScaleGate first answers the founder. */
+const onClock = (a) => ['submitted', 'screening'].includes(a.status) && (a.stage || 1) === 1 && !a.answered_at;
 
 module.exports = { answerDue, workingDaysSince, onClock, esc, money, full, date, when, status, kindLabel, pillarLabel, answerText, KINDS: Q.KINDS, STATUSES: W.STATUSES };

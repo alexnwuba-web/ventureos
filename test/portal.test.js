@@ -129,7 +129,8 @@ test('integrity veto, the ten-working-day answer date, and the triage traction r
   const { answerDue } = require('../src/lib/view');
   // Friday 6 Nov 2026 + 10 working days = Friday 20 Nov 2026
   assert.equal(answerDue(new Date('2026-11-06T09:00:00Z')).toISOString().slice(0, 10), '2026-11-20');
-  await db.query(`UPDATE applications SET status = 'submitted', stage = 1, submitted_at = now() WHERE ref = $1`, [ref]);
+  // Earlier tests invited the founder to a meeting, which answers the application; reset to an unanswered one.
+  await db.query(`UPDATE applications SET status = 'submitted', stage = 1, submitted_at = now(), answered_at = NULL WHERE ref = $1`, [ref]);
   let r = await founder.get(`/my/a/${ref}`).expect(200);
   assert.match(r.text, /written answer by/);
   r = await admin.get('/staff').expect(200);

@@ -136,6 +136,13 @@ async function submit(app, person) {
   return to;
 }
 
+/** Records the first time ScaleGate answered the founder; this stops the ten-working-day clock. */
+async function markAnswered(appId) {
+  await db.query('UPDATE applications SET answered_at = now() WHERE id = $1 AND answered_at IS NULL', [appId]);
+}
+/** Stage changes that are an answer to the founder. */
+const ANSWERS = ['info_requested', 'full_requested', 'accepted', 'offer', 'waitlisted', 'declined'];
+
 async function move(app, to, actor, note) {
   if (!W.STATUSES[to]) throw err(400, 'Unknown status.');
   if (!W.canMove(app.status, to)) throw err(409, `An application that is ${W.STATUSES[app.status].label.toLowerCase()} cannot move to ${W.STATUSES[to].label.toLowerCase()}.`);
@@ -145,6 +152,7 @@ async function move(app, to, actor, note) {
   await db.query(`UPDATE applications SET status = $2, updated_at = now(), decided_at = CASE WHEN $3 THEN now() ELSE decided_at END,
     decision_note = CASE WHEN $3 THEN $4 ELSE decision_note END WHERE id = $1`, [app.id, to, W.isDecision(to), note || null]);
   await audit(actor.id, app.id, 'status', { from: app.status, to, note: note || undefined });
+  if (ANSWERS.includes(to)) await markAnswered(app.id);
 }
 
 async function setKinds(app, kinds, actorId) {
@@ -155,4 +163,4 @@ async function setKinds(app, kinds, actorId) {
   await audit(actorId, app.id, 'kinds', { kinds: ks });
 }
 
-module.exports = { create, byRef, answersOf, saveSection, documentsOf, readiness, submit, move, setKinds, parseValue, cleanKinds, KIND_KEYS };
+module.exports = { markAnswered, create, byRef, answersOf, saveSection, documentsOf, readiness, submit, move, setKinds, parseValue, cleanKinds, KIND_KEYS };

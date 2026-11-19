@@ -230,6 +230,7 @@ r.post('/staff/a/:ref/message', async (req, res) => {
     await db.query('INSERT INTO messages (application_id, author_id, body, internal) VALUES ($1,$2,$3,$4)', [app.id, req.person.id, body, internal]);
     await audit(req.person.id, app.id, internal ? 'note' : 'message', null);
     if (!internal) {
+      await A.markAnswered(app.id);
       await mail.send({ replyTo: mail.officer(req.person), to: app.applicant_email, subject: `A message about your VentureOS application ${app.ref}`,
         lines: [`Dear ${app.applicant_name || 'founder'},`, body], link: { label: 'Reply in VentureOS', url: `${config.baseUrl}/my/a/${app.ref}#messages` } });
     }
@@ -266,6 +267,7 @@ const canMeet = requireStaff('admin', 'officer', 'committee');
 r.post('/staff/a/:ref/meetings', canMeet, async (req, res) => {
   const app = await visible(req);
   await P.invite(app, req.person, req.body);
+  await A.markAnswered(app.id);
   res.redirect(`/staff/a/${app.ref}?n=invited#meetings`);
 });
 r.post('/staff/a/:ref/meetings/:id', canMeet, async (req, res) => {
